@@ -359,7 +359,7 @@ class DeepEPLLAll2AllManager(DeepEPAll2AllManagerBase):
 
         assert num_rdma_bytes is not None
 
-        if not current_platform.is_rocm():
+        if current_platform.is_rocm():
             return dict(
                 group=self.cpu_group,
                 num_nvl_bytes=num_nvl_bytes,
