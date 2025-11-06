@@ -6,6 +6,7 @@ import torch
 import torch.distributed as dist
 
 import vllm.envs as envs
+from vllm.platforms import current_platform
 from vllm.distributed import get_dp_group, get_ep_group
 from vllm.forward_context import get_forward_context
 from vllm.logger import init_logger
@@ -357,15 +358,26 @@ class DeepEPLLAll2AllManager(DeepEPAll2AllManagerBase):
         )
 
         assert num_rdma_bytes is not None
-        return dict(
-            group=self.cpu_group,
-            num_nvl_bytes=num_nvl_bytes,
-            num_rdma_bytes=num_rdma_bytes,
-            low_latency_mode=True,
-            num_qps_per_rank=num_qps_per_rank,
-            allow_nvlink_for_low_latency_mode=True,
-            allow_mnnvl=envs.VLLM_DEEPEP_LOW_LATENCY_USE_MNNVL,
-        )
+
+        if current_platform.is_rocm():
+            return dict(
+                group=self.cpu_group,
+                num_nvl_bytes=num_nvl_bytes,
+                num_rdma_bytes=num_rdma_bytes,
+                low_latency_mode=True,
+                num_qps_per_rank=num_qps_per_rank,
+            )
+        else:
+            return dict(
+                group=self.cpu_group,
+                num_nvl_bytes=num_nvl_bytes,
+                num_rdma_bytes=num_rdma_bytes,
+                low_latency_mode=True,
+                num_qps_per_rank=num_qps_per_rank,
+                allow_nvlink_for_low_latency_mode=True,
+                allow_mnnvl=envs.VLLM_DEEPEP_LOW_LATENCY_USE_MNNVL,
+            )
+
 
     def get_handle(self, kwargs):
         """

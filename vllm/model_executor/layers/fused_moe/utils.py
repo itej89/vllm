@@ -22,6 +22,7 @@ from vllm.model_executor.layers.quantization.utils.mxfp6_utils import (
 from vllm.model_executor.layers.quantization.utils.mxfp8_utils import (
     mxfp8_e4m3_quantize,
 )
+from vllm.platforms import current_platform
 from vllm.triton_utils import tl, triton
 from vllm.utils.flashinfer import flashinfer_fp4_quantize
 from vllm.utils.math_utils import cdiv
@@ -244,7 +245,7 @@ def moe_kernel_quantize_input(
     block_shape: list[int] | None = None,
     is_fp4_scale_swizzled: bool = True,
 ) -> tuple[torch.Tensor, torch.Tensor | None]:
-    if quant_dtype == torch.float8_e4m3fn:
+    if quant_dtype == current_platform.fp8_dtype():
         return _fp8_quantize(A, A_scale, per_act_token_quant, block_shape)
     elif quant_dtype == torch.int8:
         return _int8_quantize(A, A_scale, per_act_token_quant, block_shape)
