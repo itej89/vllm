@@ -4,6 +4,7 @@
 
 import torch
 
+from vllm.platforms import current_platform
 import vllm.model_executor.layers.fused_moe.modular_kernel as mk
 from vllm.model_executor.layers.fused_moe.config import FusedMoEQuantConfig
 from vllm.model_executor.layers.fused_moe.fused_moe import try_get_optimal_moe_config
@@ -909,7 +910,7 @@ class BatchedTritonExperts(mk.FusedMoEPermuteExpertsUnpermute):
             torch.float32,
             torch.float16,
             torch.bfloat16,
-            torch.float8_e4m3fn,
+            current_platform.fp8_dtype(),
         ]
         assert expert_tokens_meta is not None
 
@@ -939,7 +940,7 @@ class BatchedTritonExperts(mk.FusedMoEPermuteExpertsUnpermute):
             compute_type = tl.float16
         elif hidden_states.dtype == torch.float32:
             compute_type = tl.float32
-        elif hidden_states.dtype == torch.float8_e4m3fn:
+        elif hidden_states.dtype == current_platform.fp8_dtype():
             compute_type = tl.bfloat16
         else:
             raise ValueError(f"Unsupported compute_type: {hidden_states.dtype}")
