@@ -1672,7 +1672,7 @@ def _get_config_quant_dtype(
     fused_experts_impl.
     """
     if use_fp8_w8a8:
-        return torch.float8_e4m3fn
+        return current_platform.fp8_dtype()
     elif use_int8_w8a8:
         return torch.int8
     elif ocp_mx_scheme == "w_mxfp4_a_mxfp4":
@@ -2043,7 +2043,7 @@ class TritonExperts(mk.FusedMoEPermuteExpertsUnpermute):
             torch.float32,
             torch.float16,
             torch.bfloat16,
-            torch.float8_e4m3fn,
+            current_platform.fp8_dtype(),
         ]
 
         E, num_tokens, N, K, top_k_num = self.moe_problem_size(

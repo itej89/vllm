@@ -9,6 +9,7 @@ import vllm.envs as envs
 from vllm.config import ParallelConfig
 from vllm.distributed import get_dp_group, get_tensor_model_parallel_rank
 from vllm.logger import init_logger
+from vllm.platforms import current_platform
 from vllm.model_executor.layers.quantization.utils.ocp_mx_utils import (
     OCP_MX_DTYPES,
     OCP_MX_Scheme,
@@ -282,7 +283,7 @@ class FusedMoEQuantConfig:
 
     @property
     def use_fp8_w8a8(self) -> bool:
-        return self.quant_dtype == torch.float8_e4m3fn
+        return self.quant_dtype == current_platform.fp8_dtype()
 
     @property
     def use_int8_w8a8(self) -> bool:
@@ -472,7 +473,7 @@ def fp8_w8a8_moe_quant_config(
     Construct a quant config for fp8 activations and fp8 weights.
     """
     return FusedMoEQuantConfig.make(
-        torch.float8_e4m3fn,
+        current_platform.fp8_dtype(),
         w1_scale=w1_scale,
         g1_alphas=g1_alphas,
         w2_scale=w2_scale,
