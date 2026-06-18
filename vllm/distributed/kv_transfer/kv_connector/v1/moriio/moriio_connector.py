@@ -514,7 +514,7 @@ class MoRIIOConnectorScheduler:
             # offset (``decode_dp_rank % remote_dp_size_local``, for the
             # notify port) AND the owning pod index
             # (``decode_dp_rank // remote_dp_size_local``, to pick
-            # remote_hosts[pod_idx]) from this value, and resolves the
+            # multi_pod_hosts[pod_idx]) from this value, and resolves the
             # write-target session via get_engine_name_with_dp(global).
             # Sending the LOCAL rank here (the old ``self.dp_rank``, which
             # is folded to per-pod) made every child-pod consumer look
@@ -1562,11 +1562,11 @@ class MoRIIOConnectorWorker:
             # Wide-EP multi-pod support: previously a single ``host`` was
             # used for every remote DP rank 0..remote_dp_size-1. In a
             # multi-pod deployment (e.g. Wide-EP-16 with master+child
-            # decode pods), ranks 0..dp_local-1 live on remote_hosts[0]
+            # decode pods), ranks 0..dp_local-1 live on multi_pod_hosts[0]
             # at one IP and ranks dp_local..2*dp_local-1 live on
-            # remote_hosts[1] at a different IP. Resolve the host per
+            # multi_pod_hosts[1] at a different IP. Resolve the host per
             # ``cur_dp_rank`` below.
-            remote_hosts = list(meta.remote_hosts) if meta.remote_hosts else [host]
+            pod_hosts = list(meta.multi_pod_hosts) if meta.multi_pod_hosts else [host]
             remote_dp_size_local = (
                 int(meta.remote_dp_size_local) or remote_dp_size
             )
@@ -1586,9 +1586,9 @@ class MoRIIOConnectorWorker:
             _pod_idx = (
                 cur_dp_rank // remote_dp_size_local if remote_dp_size_local > 0 else 0
             )
-            if _pod_idx >= len(remote_hosts):
+            if _pod_idx >= len(pod_hosts):
                 _pod_idx = 0
-            _per_rank_host = remote_hosts[_pod_idx]
+            _per_rank_host = pod_hosts[_pod_idx]
             # Wide-EP multi-pod port offset: each remote pod only binds
             # handshake sockets on ``handshake_port .. handshake_port +
             # remote_dp_size_local - 1`` (one per LOCAL DP rank in that
@@ -2094,16 +2094,16 @@ class MoRIIOConnectorWorker:
         )
 
     def _write_blocks_for_req(self, req_id: ReqId, meta: ReqMeta, layer_name, kv_layer):
-        # Wide-EP multi-pod support: stash the remote_hosts list + local
+        # Wide-EP multi-pod support: stash the multi_pod_hosts list + local
         # DP size on the worker so MoRIIOEngine._finalize_if_complete
         # (which only sees the WriteTask, not ReqMeta) can pick the
         # correct per-rank pod IP when sending the completion notify.
         # Last-writer-wins is fine here: all in-flight requests share
         # the same remote topology in a given replica deployment.
-        if meta.remote_hosts:
-            self.remote_hosts = list(meta.remote_hosts)
+        if meta.multi_pod_hosts:
+            self.multi_pod_hosts = list(meta.multi_pod_hosts)
         else:
-            self.remote_hosts = [meta.remote_host]
+            self.multi_pod_hosts = [meta.remote_host]
         if meta.remote_dp_size_local:
             self.remote_dp_size_local = int(meta.remote_dp_size_local)
         else:
