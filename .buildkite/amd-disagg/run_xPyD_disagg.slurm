@@ -292,6 +292,7 @@ run_node_container() {
             --user $(id -u):$(id -g) \
             --name "$ROUTER_CONT_NAME" \
             --network host \
+            --user "$(id -u):$(id -g)" \
             -v "$LOG_PATH":/run_logs \
             -v "$SHARED_MOUNT":"$SHARED_MOUNT" \
             -v "/data/$(id -un):/workspace" \
