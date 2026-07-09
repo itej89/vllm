@@ -243,34 +243,6 @@ PY
 # Server roles (prefill / decode) and their shared helpers
 # ============================================================================
 
-# Apply vLLM PR #39276 when required (WIDE_EP_MODE=1 and xP>1 or yD>1), honoring
-# APPLY_MORIIO_PATCH=auto|1|0. Aborts if a required patch is missing/fails.
-# TODO: Remove this logic after PR #45043 is merged. 
-apply_patch_if_needed() {
-    local patch_required=0
-    if [[ "${WIDE_EP_MODE}" == "1" ]] && { [[ "${xP}" -gt 1 ]] || [[ "${yD}" -gt 1 ]]; }; then
-        patch_required=1
-    fi
-    local patch_script="${PATCH_SCRIPT:-${SCRIPT_DIR}/apply_moriio_2pd_patches.sh}"
-    local do_patch=0
-    case "${APPLY_MORIIO_PATCH}" in
-        1) do_patch=1 ;;
-        0) do_patch=0 ;;
-        auto|*) do_patch="${patch_required}" ;;
-    esac
-    [[ "${do_patch}" == "1" ]] || return 0
-
-    if [[ -f "${patch_script}" ]]; then
-        log "applying MoRIIO multi-node patch (PR #39276): ${patch_script}"
-        if ! bash "${patch_script}"; then
-            [[ "${patch_required}" == "1" ]] && die "patch required for multi-node DP (xP=${xP} yD=${yD}) but failed"
-            log "WARN: patch failed; continuing (not strictly required for 1P1D)"
-        fi
-    elif [[ "${patch_required}" == "1" ]]; then
-        die "patch script not found but required for multi-node DP: ${patch_script}"
-    fi
-}
-
 # Read model-specific flags from models.yaml (mode + role aware) into globals:
 #   MODEL_BASE_FLAGS / MODEL_ROLE_FLAGS / MODEL_EXPERIMENTAL_FLAGS -> MODEL_CONFIG
 # Also exports the model's env: block (only if not already set; caller env wins).
@@ -413,11 +385,10 @@ configure_decode() {
     TP_PORT="${DECODE_PORT}"
 }
 
-# Build the serve command (patch + model flags + CMD array + LOGF). No exec.
+# Build the serve command (model flags + CMD array + LOGF). No exec.
 # Expects role globals set by configure_prefill/configure_decode.
 build_server_cmd() {
     HOST_IP="${IP_ARRAY[$NODE_RANK]:-}"   # own IP for --host binding, if known
-    apply_patch_if_needed
     load_model_flags
     LOGF="${LOG_PATH}/${ROLE}_${PARALLEL_MODE}_node${NODE_RANK}_$(date +%Y%m%d_%H%M%S).log"
     CMD=(vllm serve "${MODEL_PATH}")
