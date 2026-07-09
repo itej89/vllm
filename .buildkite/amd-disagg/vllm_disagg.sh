@@ -431,7 +431,7 @@ wait_all_healthy() {
     log "health-gate: waiting on ${#eps[@]} endpoint(s): ${eps[*]}"
     local ep
     for ep in "${eps[@]}"; do
-        until curl -sf "http://${ep}/health" >/dev/null 2>&1; do
+        until /usr/bin/curl -sf "http://${ep}/health" >/dev/null 2>&1; do
             (( $(date +%s) >= deadline )) && { log "TIMEOUT waiting for ${ep}"; return 1; }
             kill -0 "${SERVER_PID}" 2>/dev/null || { log "local server (pid ${SERVER_PID}) exited while waiting"; return 1; }
             sleep 10
@@ -463,10 +463,28 @@ orchestrate_master() {
         start_proxy_bg
     fi
     if wait_all_healthy; then
-        set +e
-        run_workload
-        rc=$?
-        set -e
+        # If using the external vllm-router, wait for it to become ready before
+        # running the workload. The router starts as a separate container on this
+        # (rank-0) node; give it up to 300s to bind port ROUTER_PORT.
+        if [[ "${ROUTER_TYPE:-toy}" == "vllm-router" ]]; then
+            local router_deadline=$(( $(date +%s) + 300 ))
+            log "waiting for vllm-router on :${ROUTER_PORT} (up to 300s)"
+            until /usr/bin/curl -sf "http://127.0.0.1:${ROUTER_PORT}/health" >/dev/null 2>&1; do
+                if (( $(date +%s) >= router_deadline )); then
+                    log "TIMEOUT waiting for vllm-router on :${ROUTER_PORT}"
+                    rc=1
+                    break
+                fi
+                sleep 5
+            done
+            (( rc == 0 )) && log "vllm-router healthy on :${ROUTER_PORT}"
+        fi
+        if (( rc == 0 )); then
+            set +e
+            run_workload
+            rc=$?
+            set -e
+        fi
     else
         rc=1
     fi
