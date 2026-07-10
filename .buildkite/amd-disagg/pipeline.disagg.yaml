@@ -115,6 +115,34 @@ steps:
     commands:
       - bash .buildkite/amd-disagg/run-slurm-disagg-test.sh
 
+  - label: "ROCm Disagg P/D 2P2D TP8 DSV3 FP8 (MoRIIO + vllm-router) — SLURM"
+    key: rocm-disagg-pd-2p2d-tp8-dsv3-router-slurm
+    agent_pool: amd_mi250_8
+    timeout_in_minutes: 120
+    no_plugin: true
+    optional: true
+    depends_on:
+      - image-build-amd
+    source_file_dependencies:
+      - vllm/distributed/kv_transfer/
+      - vllm/platforms/rocm.py
+      - .buildkite/amd-disagg/
+    env:
+      #IMAGE: "rocm/vllm-ci:${BUILDKITE_COMMIT}"
+      MODEL_NAME: "DeepSeek-V3"
+      NODES: "4"
+      GPUS_PER_NODE: "8"
+      xP: "2"
+      yD: "2"
+      WIDE_EP_MODE: "0"
+      MORIIO_READ_MODE: "0"
+      RUN_AFTER_HEALTH: "accuracy"
+      ROUTER_TYPE: "vllm-router"
+      SLURM_PARTITION: "amd-rccl"
+      SLURM_TIME_LIMIT: "08:30:00"
+    commands:
+      - bash .buildkite/amd-disagg/run-slurm-disagg-test.sh
+
   - label: "ROCm Disagg P/D 1P1D TP8 DSR1-MXFP4 (MoRIIO + vllm-router) — SLURM"
     key: rocm-disagg-pd-1p1d-tp8-dsr1-mxfp4-router-slurm
     agent_pool: amd_mi250_8
