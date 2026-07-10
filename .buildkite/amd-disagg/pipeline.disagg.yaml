@@ -44,7 +44,7 @@ steps:
       - vllm/platforms/rocm.py
       - .buildkite/amd-disagg/
     env:
-      #IMAGE: "rocm/vllm-ci:${BUILDKITE_COMMIT}"
+      IMAGE: "vllm/vllm-openai-rocm:v0.23.0"
       MODEL_NAME: "DeepSeek-V3"
       NODES: "2"
       GPUS_PER_NODE: "8"
@@ -184,7 +184,7 @@ steps:
       - vllm/platforms/rocm.py
       - .buildkite/amd-disagg/
     env:
-      #IMAGE: "rocm/vllm-ci:${BUILDKITE_COMMIT}"
+      IMAGE: "vllm/vllm-openai-rocm:v0.23.0"
       MODEL_NAME: "DeepSeek-R1-MXFP4"
       NODES: "2"
       GPUS_PER_NODE: "8"
