@@ -9,7 +9,7 @@ steps:
 
 #-----------------------------------------------------  mi250 · disagg (SLURM)  -----------------------------------------------------#
 
-- label: "ROCm Disagg PD 1P1D TP8 (MoRIIO + toy proxy)"
+- label: "DeepSeek-V3-PD-1P1D-TP8-MoRIIO-toy proxy"
   timeout_in_minutes: 480
   optional: true
   agent_pool: mi250_8
@@ -21,7 +21,7 @@ steps:
   commands:
   - NODES=2 GPUS_PER_NODE=8 WIDE_EP_MODE=0 RUN_AFTER_HEALTH=accuracy WAIT=1 SLURM_TIME_LIMIT=08:30:00 bash .buildkite/amd-disagg/run-slurm-disagg-test.sh
 
-- label: "ROCm Disagg PD 1P1D TP8 (MoRIIO + vllm-router)"
+- label: "DeepSeek-V3-PD-1P1D-TP8-MoRIIO-vllm-router"
   timeout_in_minutes: 480
   optional: true
   agent_pool: mi250_8
@@ -32,6 +32,31 @@ steps:
   - .buildkite/amd-disagg/
   commands:
   - NODES=2 GPUS_PER_NODE=8 WIDE_EP_MODE=0 RUN_AFTER_HEALTH=accuracy ROUTER_TYPE=vllm-router WAIT=1 SLURM_TIME_LIMIT=08:30:00 bash .buildkite/amd-disagg/run-slurm-disagg-test.sh
+
+- label: "DeepSeek-R1-MXFP4-PD-1P1D-TP8-MoRIIO-toy proxy"
+  timeout_in_minutes: 480
+  optional: true
+  agent_pool: mi250_8
+  mirror_hardwares: [amdexperimental, amdproduction, amdgfx90anightly, amdmi250]
+  source_file_dependencies:
+  - vllm/distributed/kv_transfer/
+  - vllm/platforms/rocm.py
+  - .buildkite/amd-disagg/
+  commands:
+  - MODEL_NAME=DeepSeek-R1-MXFP4 NODES=2 GPUS_PER_NODE=8 WIDE_EP_MODE=0 RUN_AFTER_HEALTH=accuracy WAIT=1 SLURM_TIME_LIMIT=08:30:00 bash .buildkite/amd-disagg/run-slurm-disagg-test.sh
+
+- label: "DeepSeek-R1-MXFP4-PD-1P1D-TP8-MoRIIO-vllm-router"
+  timeout_in_minutes: 480
+  optional: true
+  agent_pool: mi250_8
+  mirror_hardwares: [amdexperimental, amdproduction, amdgfx90anightly, amdmi250]
+  source_file_dependencies:
+  - vllm/distributed/kv_transfer/
+  - vllm/platforms/rocm.py
+  - .buildkite/amd-disagg/
+  commands:
+  - MODEL_NAME=DeepSeek-R1-MXFP4 NODES=2 GPUS_PER_NODE=8 WIDE_EP_MODE=0 RUN_AFTER_HEALTH=accuracy ROUTER_TYPE=vllm-router WAIT=1 SLURM_TIME_LIMIT=08:30:00 bash .buildkite/amd-disagg/run-slurm-disagg-test.sh
+
 
 # - label: "ROCm Disagg P/D 1P1D EP8/DP8 WideEP (MoRIIO + toy proxy) — SLURM"
 #   timeout_in_minutes: 480
