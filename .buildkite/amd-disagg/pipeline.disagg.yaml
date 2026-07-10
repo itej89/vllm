@@ -31,8 +31,9 @@ steps:
     commands:
       - bash .buildkite/amd-disagg/run-slurm-disagg-test.sh
 
-  - label: "ROCm Disagg P/D 1P1D TP8 (MoRIIO + vllm-router) — SLURM"
-    key: rocm-disagg-pd-1p1d-tp8-router-slurm
+  # A-02: DSV3 FP8 · 1P1D TP8 · WRITE · vLLM Router
+  - label: "A-02 · DSV3 FP8 · 1P1D TP8 · WRITE · vLLM Router — SLURM"
+    key: rocm-disagg-pd-a02-dsv3-1p1d-tp8-write-router-slurm
     agent_pool: amd_mi250_8
     timeout_in_minutes: 120
     no_plugin: true
@@ -44,11 +45,101 @@ steps:
       - vllm/platforms/rocm.py
       - .buildkite/amd-disagg/
     env:
-      # TODO: re-enable after testing
       #IMAGE: "rocm/vllm-ci:${BUILDKITE_COMMIT}"
+      MODEL_NAME: "DeepSeek-V3"
       NODES: "2"
       GPUS_PER_NODE: "8"
+      xP: "1"
+      yD: "1"
       WIDE_EP_MODE: "0"
+      MORIIO_READ_MODE: "0"
+      RUN_AFTER_HEALTH: "accuracy"
+      ROUTER_TYPE: "vllm-router"
+      SLURM_PARTITION: "amd-rccl"
+      SLURM_TIME_LIMIT: "08:30:00"
+    commands:
+      - bash .buildkite/amd-disagg/run-slurm-disagg-test.sh
+
+  # A-12: DSV4-Pro FP8 · 1P1D TP8 · WRITE · vLLM Router
+  - label: "A-12 · DSV4-Pro FP8 · 1P1D TP8 · WRITE · vLLM Router — SLURM"
+    key: rocm-disagg-pd-a12-dsv4-1p1d-tp8-write-router-slurm
+    agent_pool: amd_mi250_8
+    timeout_in_minutes: 120
+    no_plugin: true
+    optional: true
+    depends_on:
+      - image-build-amd
+    source_file_dependencies:
+      - vllm/distributed/kv_transfer/
+      - vllm/platforms/rocm.py
+      - .buildkite/amd-disagg/
+    env:
+      #IMAGE: "rocm/vllm-ci:${BUILDKITE_COMMIT}"
+      MODEL_NAME: "DeepSeek-V4-Pro"
+      NODES: "2"
+      GPUS_PER_NODE: "8"
+      xP: "1"
+      yD: "1"
+      WIDE_EP_MODE: "0"
+      MORIIO_READ_MODE: "0"
+      RUN_AFTER_HEALTH: "accuracy"
+      ROUTER_TYPE: "vllm-router"
+      SLURM_PARTITION: "amd-rccl"
+      SLURM_TIME_LIMIT: "08:30:00"
+    commands:
+      - bash .buildkite/amd-disagg/run-slurm-disagg-test.sh
+
+  # A-20: MiniMax-M3-MXFP8 · 1P1D TP8 · WRITE · vLLM Router
+  - label: "A-20 · MiniMax-M3-MXFP8 · 1P1D TP8 · WRITE · vLLM Router — SLURM"
+    key: rocm-disagg-pd-a20-minimax-1p1d-tp8-write-router-slurm
+    agent_pool: amd_mi250_8
+    timeout_in_minutes: 120
+    no_plugin: true
+    optional: true
+    depends_on:
+      - image-build-amd
+    source_file_dependencies:
+      - vllm/distributed/kv_transfer/
+      - vllm/platforms/rocm.py
+      - .buildkite/amd-disagg/
+    env:
+      #IMAGE: "rocm/vllm-ci:${BUILDKITE_COMMIT}"
+      MODEL_NAME: "MiniMax-M3-MXFP8"
+      NODES: "2"
+      GPUS_PER_NODE: "8"
+      xP: "1"
+      yD: "1"
+      WIDE_EP_MODE: "0"
+      MORIIO_READ_MODE: "0"
+      RUN_AFTER_HEALTH: "accuracy"
+      ROUTER_TYPE: "vllm-router"
+      SLURM_PARTITION: "amd-rccl"
+      SLURM_TIME_LIMIT: "08:30:00"
+    commands:
+      - bash .buildkite/amd-disagg/run-slurm-disagg-test.sh
+
+  # A-26: DeepSeek-R1-MXFP4 · 1P1D TP8 · WRITE · vLLM Router
+  - label: "A-26 · DSR1-MXFP4 · 1P1D TP8 · WRITE · vLLM Router — SLURM"
+    key: rocm-disagg-pd-a26-dsr1-mxfp4-1p1d-tp8-write-router-slurm
+    agent_pool: amd_mi250_8
+    timeout_in_minutes: 120
+    no_plugin: true
+    optional: true
+    depends_on:
+      - image-build-amd
+    source_file_dependencies:
+      - vllm/distributed/kv_transfer/
+      - vllm/platforms/rocm.py
+      - .buildkite/amd-disagg/
+    env:
+      #IMAGE: "rocm/vllm-ci:${BUILDKITE_COMMIT}"
+      MODEL_NAME: "DeepSeek-R1-MXFP4"
+      NODES: "2"
+      GPUS_PER_NODE: "8"
+      xP: "1"
+      yD: "1"
+      WIDE_EP_MODE: "0"
+      MORIIO_READ_MODE: "0"
       RUN_AFTER_HEALTH: "accuracy"
       ROUTER_TYPE: "vllm-router"
       SLURM_PARTITION: "amd-rccl"
