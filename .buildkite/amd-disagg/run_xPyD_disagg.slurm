@@ -286,22 +286,24 @@ run_node_container() {
         echo "DRY_RUN: would start vllm-router on $(hostname): $VLLM_ROUTER_IMAGE (discovery :$PROXY_PING_PORT, port :$ROUTER_PORT, policy $ROUTER_POLICY, dp_local=$ROUTER_DP_LOCAL)"
     elif [ "$ROUTER_TYPE" = "vllm-router" ] && [ "$rank" = "0" ]; then
         docker rm -f "$ROUTER_CONT_NAME" 2>/dev/null || true
-        echo "Starting vllm-router on $(hostname): $VLLM_ROUTER_IMAGE (discovery :$PROXY_PING_PORT, port :$ROUTER_PORT, policy $ROUTER_POLICY, dp_local=$ROUTER_DP_LOCAL)"
         mkdir -p "$LOG_PATH" 2>/dev/null || true
-        docker run -d \
-            --user $(id -u):$(id -g) \
-            --name "$ROUTER_CONT_NAME" \
-            --network host \
-            --user "$(id -u):$(id -g)" \
-            -v "$LOG_PATH":/run_logs \
-            -v "$SHARED_MOUNT":"$SHARED_MOUNT" \
-            -v "/data/$(id -un):/workspace" \
-            -e HOME=/workspace \
-            -e USER="$(id -un)" \
-            -e LOGNAME="$(id -un)" \
-            "$VLLM_ROUTER_IMAGE" \
-            bash -lc "exec vllm-router --vllm-pd-disaggregation --kv-connector moriio --vllm-discovery-address 0.0.0.0:$PROXY_PING_PORT --port $ROUTER_PORT --host 0.0.0.0 --intra-node-data-parallel-size $ROUTER_DP_LOCAL --policy $ROUTER_POLICY --prefill-policy $ROUTER_POLICY --decode-policy $ROUTER_POLICY --log-level info > $LOG_PATH/vllm_router.log 2>&1" \
-          || echo "WARN: failed to start vllm-router container on $(hostname)"
+        {
+            echo "Starting vllm-router on $(hostname): $VLLM_ROUTER_IMAGE (discovery :$PROXY_PING_PORT, port :$ROUTER_PORT, policy $ROUTER_POLICY, dp_local=$ROUTER_DP_LOCAL)"
+            docker run -d \
+                --name "$ROUTER_CONT_NAME" \
+                --network host \
+                --user "$(id -u):$(id -g)" \
+                -v "$LOG_PATH":/run_logs \
+                -v "$SHARED_MOUNT":"$SHARED_MOUNT" \
+                -v "/data/$(id -un):/workspace" \
+                -e HOME=/workspace \
+                -e USER="$(id -un)" \
+                -e LOGNAME="$(id -un)" \
+                "$VLLM_ROUTER_IMAGE" \
+                bash -lc "exec vllm-router --vllm-pd-disaggregation --kv-connector moriio --vllm-discovery-address 0.0.0.0:$PROXY_PING_PORT --port $ROUTER_PORT --host 0.0.0.0 --intra-node-data-parallel-size $ROUTER_DP_LOCAL --policy $ROUTER_POLICY --prefill-policy $ROUTER_POLICY --decode-policy $ROUTER_POLICY --log-level info >> $LOG_PATH/vllm_router.log 2>&1" \
+              && echo "vllm-router container started ok" \
+              || echo "WARN: failed to start vllm-router container on $(hostname)"
+        } 2>&1 | tee -a "$LOG_PATH/vllm_router_start.log"
     fi
 
     docker run --rm \

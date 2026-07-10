@@ -86,7 +86,7 @@ cp -rL --no-preserve=ownership,timestamps "${SCRIPT_DIR}/." "${STAGED_DIR}/"
 chmod -R u+rwX "${STAGED_DIR}" 2>/dev/null || true
 export DISAGG_SCRIPTS_DIR="${STAGED_DIR}"
 echo "[slurm-submit] staged scripts for compute nodes: ${DISAGG_SCRIPTS_DIR}" >&2
-export IMAGE WIDE_EP_MODE xP yD GPUS_PER_NODE RUN_AFTER_HEALTH HEALTH_TIMEOUT_S
+export IMAGE MODEL_NAME WIDE_EP_MODE xP yD GPUS_PER_NODE RUN_AFTER_HEALTH HEALTH_TIMEOUT_S
 export SHARED_MOUNT LOG_ROOT DRY_RUN MORIIO_READ_MODE
 export ROUTER_TYPE ROUTER_PORT VLLM_ROUTER_IMAGE
 # Model selection is optional: forward MODEL_NAME/MODEL_DIR only when the caller
