@@ -338,6 +338,8 @@ run_node_container() {
         -e xP="$xP" -e yD="$yD" \
         -e GPUS_PER_NODE="$GPUS_PER_NODE" \
         -e CLUSTER_ENV="$CLUSTER_ENV" \
+        -e MODEL_NAME="${MODEL_NAME:-}" \
+        -e MODEL_DIR="${MODEL_DIR:-}" \
         -e LOG_PATH="$LOG_PATH" \
         -e RUN_AFTER_HEALTH="$RUN_AFTER_HEALTH" \
         -e HEALTH_TIMEOUT_S="$HEALTH_TIMEOUT_S" \

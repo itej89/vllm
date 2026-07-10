@@ -89,6 +89,12 @@ echo "[slurm-submit] staged scripts for compute nodes: ${DISAGG_SCRIPTS_DIR}" >&
 export IMAGE WIDE_EP_MODE xP yD GPUS_PER_NODE RUN_AFTER_HEALTH HEALTH_TIMEOUT_S
 export SHARED_MOUNT LOG_ROOT DRY_RUN MORIIO_READ_MODE
 export ROUTER_TYPE ROUTER_PORT VLLM_ROUTER_IMAGE
+# Model selection is optional: forward MODEL_NAME/MODEL_DIR only when the caller
+# set them, so cluster.sh's per-cluster default (DeepSeek-V3 under /data/models2)
+# still applies when unset. Spur forwards only *exported* env to the job, so a
+# bare `MODEL_NAME=... bash run-...sh` prefix is lost unless we re-export it here.
+[[ -n "${MODEL_NAME:-}" ]] && export MODEL_NAME
+[[ -n "${MODEL_DIR:-}" ]] && export MODEL_DIR
 
 # Non-default resource requests can't ride CLI flags (they wedge Spur), so we
 # patch the relevant #SBATCH directive(s) on a throwaway /tmp copy of the job
