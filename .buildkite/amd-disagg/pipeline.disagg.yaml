@@ -31,9 +31,8 @@ steps:
     commands:
       - bash .buildkite/amd-disagg/run-slurm-disagg-test.sh
 
-  # A-02: DSV3 FP8 · 1P1D TP8 · WRITE · vLLM Router
-  - label: "A-02 · DSV3 FP8 · 1P1D TP8 · WRITE · vLLM Router — SLURM"
-    key: rocm-disagg-pd-a02-dsv3-1p1d-tp8-write-router-slurm
+  - label: "ROCm Disagg P/D 1P1D TP8 DSV3 FP8 (MoRIIO + vllm-router) — SLURM"
+    key: rocm-disagg-pd-1p1d-tp8-dsv3-router-slurm
     agent_pool: amd_mi250_8
     timeout_in_minutes: 120
     no_plugin: true
@@ -60,9 +59,8 @@ steps:
     commands:
       - bash .buildkite/amd-disagg/run-slurm-disagg-test.sh
 
-  # A-12: DSV4-Pro FP8 · 1P1D TP8 · WRITE · vLLM Router
-  - label: "A-12 · DSV4-Pro FP8 · 1P1D TP8 · WRITE · vLLM Router — SLURM"
-    key: rocm-disagg-pd-a12-dsv4-1p1d-tp8-write-router-slurm
+  - label: "ROCm Disagg P/D 1P1D TP8 DSV4-Pro FP8 (MoRIIO + vllm-router) — SLURM"
+    key: rocm-disagg-pd-1p1d-tp8-dsv4-router-slurm
     agent_pool: amd_mi250_8
     timeout_in_minutes: 120
     no_plugin: true
@@ -89,9 +87,8 @@ steps:
     commands:
       - bash .buildkite/amd-disagg/run-slurm-disagg-test.sh
 
-  # A-20: MiniMax-M3-MXFP8 · 1P1D TP8 · WRITE · vLLM Router
-  - label: "A-20 · MiniMax-M3-MXFP8 · 1P1D TP8 · WRITE · vLLM Router — SLURM"
-    key: rocm-disagg-pd-a20-minimax-1p1d-tp8-write-router-slurm
+  - label: "ROCm Disagg P/D 1P1D TP8 MiniMax-M3-MXFP8 (MoRIIO + vllm-router) — SLURM"
+    key: rocm-disagg-pd-1p1d-tp8-minimax-router-slurm
     agent_pool: amd_mi250_8
     timeout_in_minutes: 120
     no_plugin: true
@@ -118,9 +115,8 @@ steps:
     commands:
       - bash .buildkite/amd-disagg/run-slurm-disagg-test.sh
 
-  # A-26: DeepSeek-R1-MXFP4 · 1P1D TP8 · WRITE · vLLM Router
-  - label: "A-26 · DSR1-MXFP4 · 1P1D TP8 · WRITE · vLLM Router — SLURM"
-    key: rocm-disagg-pd-a26-dsr1-mxfp4-1p1d-tp8-write-router-slurm
+  - label: "ROCm Disagg P/D 1P1D TP8 DSR1-MXFP4 (MoRIIO + vllm-router) — SLURM"
+    key: rocm-disagg-pd-1p1d-tp8-dsr1-mxfp4-router-slurm
     agent_pool: amd_mi250_8
     timeout_in_minutes: 120
     no_plugin: true
