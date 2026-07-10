@@ -60,7 +60,6 @@ class AiterMLABackend(MLACommonBackend):
         "fp8",
         "fp8_e4m3",
         "fp8_e5m2",
-        "fp8_ds_mla",
     ]
 
     @classmethod
@@ -195,7 +194,7 @@ class AiterMLAMetadataBuilder(MLACommonMetadataBuilder[AiterMLAMetadata]):
         self._num_attention_heads = max(16, self.num_heads)
         q_dtype = self.decode_attn_out_dtype
         kv_cache_dtype_str = getattr(vllm_config.cache_config, "cache_dtype", "auto")
-        if kv_cache_dtype_str in ("fp8", "fp8_e4m3", "fp8_e5m2", "fp8_ds_mla"):
+        if kv_cache_dtype_str in ("fp8", "fp8_e4m3", "fp8_e5m2"):
             kv_cache_dtype_str = "fp8"
         else:
             kv_cache_dtype_str = "bf16"
