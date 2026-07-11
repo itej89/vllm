@@ -48,6 +48,32 @@ models:
       ep: '--gpu-memory-utilization 0.75 --enforce-eager'
         #ep: '--gpu-memory-utilization 0.75 --compilation-config {"cudagraph_mode":"PIECEWISE","custom_ops":["+quant_fp8"]}'
 
+  - model: DeepSeek-V4-Pro
+    env:
+      VLLM_ROCM_USE_AITER: "1"
+      VLLM_ROCM_USE_AITER_MLA: "1"
+      VLLM_ROCM_USE_AITER_MOE: "1"
+      VLLM_ROCM_USE_AITER_RMSNORM: "1"
+      VLLM_ROCM_USE_AITER_PAGED_ATTN: "0"
+      VLLM_ROCM_USE_AITER_FUSION_SHARED_EXPERTS: "0"
+      VLLM_USE_AITER_TRITON_SILU_MUL: "0"
+    base_flags: "--trust-remote-code --kv-cache-dtype fp8 --distributed-executor-backend mp --max-num-seqs 512 --max-num-batched-tokens 8192 --max-model-len 32768 --compilation-config {\"mode\":3,\"cudagraph_mode\":\"FULL_DECODE_ONLY\"}"
+    prefill:
+      tp: "--gpu-memory-utilization 0.9"
+    decode:
+      tp: "--gpu-memory-utilization 0.9"
+
+  - model: MiniMax-M3-MXFP8
+    env:
+      VLLM_ROCM_USE_AITER: "1"
+      VLLM_ROCM_USE_AITER_MOE: "1"
+      VLLM_ROCM_USE_AITER_RMSNORM: "1"
+    base_flags: "--trust-remote-code"
+    prefill:
+      tp: "--gpu-memory-utilization 0.85"
+    decode:
+      tp: "--gpu-memory-utilization 0.85"
+
   - model: DeepSeek-R1-MXFP4
     env:
       VLLM_ROCM_USE_AITER: "1"
@@ -55,6 +81,17 @@ models:
       VLLM_ROCM_USE_AITER_MOE: "1"
       VLLM_ROCM_USE_AITER_RMSNORM: "1"
     base_flags: "--trust-remote-code --kv-cache-dtype fp8"
+    prefill:
+      tp: "--gpu-memory-utilization 0.85"
+    decode:
+      tp: "--gpu-memory-utilization 0.85"
+
+  - model: Kimi-K2.5-MXFP4
+    env:
+      VLLM_ROCM_USE_AITER: "1"
+      VLLM_ROCM_USE_AITER_MOE: "1"
+      VLLM_ROCM_USE_AITER_RMSNORM: "1"
+    base_flags: "--trust-remote-code"
     prefill:
       tp: "--gpu-memory-utilization 0.85"
     decode:
