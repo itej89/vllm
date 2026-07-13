@@ -327,6 +327,7 @@ async def handle_request(api: str, request: Request):
         session, decode_response = await decode_request_task
         stream_generator = stream_decode_response(session, decode_response, request_id)
         response = await make_response(stream_generator)
+        response.content_type = decode_response.content_type
         return response
     except Exception as e:
         logger.exception("An error occurred while handling the request: %s", e)
