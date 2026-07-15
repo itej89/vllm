@@ -1484,12 +1484,17 @@ class MoRIIOConnectorWorker:
                 self.layer_name_to_local_kv_cache_metadata[layer_name] = []
 
             if not kv_cache.is_contiguous():
-                nbytes = kv_cache.untyped_storage().nbytes()
+                cache_u8 = kv_cache.view(torch.uint8)
+                # Register from data_ptr() (not storage base) so RDMA offsets
+                # computed relative to kv_cache.data_ptr() stay aligned.
+                total_bytes = (
+                    kv_cache.shape[0] * kv_cache.stride(0) * kv_cache.element_size()
+                )
                 reg_tensor = torch.as_strided(
-                    kv_cache.view(torch.uint8),
-                    size=(nbytes,),
+                    cache_u8,
+                    size=(total_bytes,),
                     stride=(1,),
-                    storage_offset=0,
+                    storage_offset=cache_u8.storage_offset(),
                 )
             else:
                 reg_tensor = kv_cache
