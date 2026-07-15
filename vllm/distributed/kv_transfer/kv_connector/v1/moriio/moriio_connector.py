@@ -1113,6 +1113,10 @@ class MoRIIOConnectorWorker:
                         ][0]
                     )
                 )
+                logger.debug(
+                    "SESSION_BUILD layer=%s local_meta=%s remote_meta=%s",
+                    ln, unpacked_local_memory_meta, unpacked_remote_memory_meta,
+                )
                 cur_remote_engine_sessions.append(
                     self.moriio_wrapper.build_session(
                         unpacked_local_memory_meta, unpacked_remote_memory_meta
