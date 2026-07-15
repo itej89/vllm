@@ -1023,11 +1023,20 @@ class MoRIIOConnectorWorker:
         self.use_mla = self.model_config.use_mla
         self.built_session = False
         self.built_write_session: defaultdict[str, list] = defaultdict(list)
+        # fp8_ds_mla is a DSV4-Pro-specific dtype that the attention backend
+        # selector does not recognise. Normalise it to plain fp8 for the probe
+        # and set use_sparse so the correct sparse-MLA backend is selected.
+        probe_kv_dtype = self.cache_config.cache_dtype
+        use_sparse = False
+        if probe_kv_dtype == "fp8_ds_mla":
+            use_sparse = True
+            probe_kv_dtype = "fp8"
         backend = get_attn_backend(
             self.model_config.get_head_size(),
             self.model_config.dtype,
-            self.cache_config.cache_dtype,
+            probe_kv_dtype,
             use_mla=self.use_mla,
+            use_sparse=use_sparse,
         )
         self.transfer_id_to_request_id: dict[TransferId, ReqId] = {}
         # READ-mode producer: a decode release-ACK can arrive BEFORE
@@ -1477,7 +1486,21 @@ class MoRIIOConnectorWorker:
             if layer_name not in self.layer_name_to_local_kv_cache_metadata:
                 self.layer_name_to_local_kv_cache_metadata[layer_name] = []
 
-            moriio_mem_metadata = self.moriio_wrapper.register_local_tensor(kv_cache)
+            # DSV4-Pro packs multiple sub-caches into one backing tensor.
+            # The resulting views are non-contiguous, which causes RDMA
+            # registration to fail. Re-stride over the full underlying storage
+            # so the registered region is always a flat contiguous byte buffer.
+            if not kv_cache.is_contiguous():
+                nbytes = kv_cache.untyped_storage().nbytes()
+                reg_tensor = torch.as_strided(
+                    kv_cache.view(torch.uint8),
+                    size=(nbytes,),
+                    stride=(1,),
+                    storage_offset=0,
+                )
+            else:
+                reg_tensor = kv_cache
+            moriio_mem_metadata = self.moriio_wrapper.register_local_tensor(reg_tensor)
             self.layer_name_to_local_kv_cache_metadata[layer_name].append(
                 moriio_mem_metadata
             )
