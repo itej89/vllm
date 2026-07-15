@@ -296,7 +296,8 @@ class MoRIIOConnector(KVConnectorBase_V1):
         self.connector_worker.start_load_kv(self._connector_metadata)
 
     def wait_for_layer_load(self, layer_name: str) -> None:
-        pass
+        if self.connector_worker is not None:
+            self.connector_worker.wait_for_layer_load()
 
     def save_kv_layer(
         self,
@@ -1834,6 +1835,35 @@ class MoRIIOConnectorWorker:
                 break
 
         self._reqs_to_send.update(metadata.reqs_to_send)
+
+    def wait_for_layer_load(self) -> None:
+        """Block until all in-progress RDMA READs complete.
+
+        Called before each attention layer forward in READ mode to ensure
+        the KV data is present before the model consumes it.
+        """
+        if self.mode != MoRIIOMode.READ or self.is_producer:
+            return
+        if not self._recving_transfers:
+            return
+        deadline = time.monotonic() + self.moriio_config.transfer_timeout
+        with self.moriio_wrapper.lock:
+            all_statuses = [
+                s
+                for status_list in self._recving_transfers.values()
+                for s in status_list
+            ]
+        while True:
+            pending = [s for s in all_statuses if not s.Succeeded() and not s.Failed()]
+            if not pending:
+                break
+            if time.monotonic() > deadline:
+                logger.warning(
+                    "wait_for_layer_load: timed out waiting for %d RDMA READ(s)",
+                    len(pending),
+                )
+                break
+            time.sleep(0.0001)
 
     def wait_for_save(self, metadata: MoRIIOConnectorMetadata):
         if self.mode == MoRIIOMode.WRITE and self.is_producer:
