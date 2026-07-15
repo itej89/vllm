@@ -120,9 +120,18 @@ def get_layer_transfer_geometry(
     )
 
     if is_mla_cache and len(shape) == 3:
-        num_blocks, block_size, latent_dim = shape
-        slot_size_bytes = latent_dim * element_size
-        block_len = block_size * slot_size_bytes
+        num_blocks, dim1, latent_dim = shape
+        if dim1 == spec.block_size:
+            # Standard MLA layout: (num_blocks, block_size, latent_dim)
+            block_size = dim1
+            slot_size_bytes = latent_dim * element_size
+            block_len = block_size * slot_size_bytes
+        else:
+            # Compressed MLA layout (e.g. DSV4-Pro): dim1 is not block_size.
+            # Use spec.block_size and derive block_len from the block stride.
+            block_size = spec.block_size
+            block_len = stride[0] * element_size
+            slot_size_bytes = block_len // block_size
         return LayerTransferGeometry(
             num_blocks=num_blocks,
             block_size=block_size,
