@@ -1024,7 +1024,10 @@ class MoRIIOConnectorWorker:
         self.built_session = False
         self.built_write_session: defaultdict[str, list] = defaultdict(list)
         probe_kv_dtype = self.cache_config.cache_dtype
-        use_sparse = probe_kv_dtype == "fp8_ds_mla"
+        use_sparse = False
+        if probe_kv_dtype == "fp8_ds_mla":
+            use_sparse = True
+            probe_kv_dtype = "fp8"
         backend = get_attn_backend(
             self.model_config.get_head_size(),
             self.model_config.dtype,
