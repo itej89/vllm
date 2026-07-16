@@ -513,16 +513,6 @@ class DeepseekV4Attention(nn.Module, AttentionLayerBase, ABC):
 
         # MLA attention writes into the pre-allocated `out` buffer
         # ([num_tokens, padded_heads, head_dim]).
-        # KV transfer: wait for RDMA reads to complete before attention reads
-        # from the KV cache (READ mode consumer), or save after (WRITE mode
-        # producer). No-ops when KV transfer is not active.
-        _kvt = (
-            has_kv_transfer_group() and is_v1_kv_transfer_group()
-            and get_kv_transfer_group().has_connector_metadata()
-        )
-        if _kvt:
-            get_kv_transfer_group().wait_for_layer_load(self.prefix)
-
         self.forward_mqa(q, kv, positions, out)
 
 
