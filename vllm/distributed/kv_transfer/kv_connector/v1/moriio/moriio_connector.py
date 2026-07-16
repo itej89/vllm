@@ -1855,9 +1855,9 @@ class MoRIIOConnectorWorker:
 
     @staticmethod
     def _sample_kv_bytes(tensor: torch.Tensor, byte_offset: int, n: int = 32) -> str:
-        """Return hex dump of n bytes starting at byte_offset in tensor."""
+        """Return list of n bytes starting at byte_offset in tensor."""
         try:
-            flat = tensor.view(-1).view(torch.uint8)
+            flat = tensor.contiguous().reshape(-1).view(torch.uint8)
             end = min(byte_offset + n, flat.numel())
             return flat[byte_offset:end].cpu().tolist().__repr__()
         except Exception as exc:

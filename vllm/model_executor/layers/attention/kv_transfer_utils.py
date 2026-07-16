@@ -42,7 +42,20 @@ def maybe_transfer_kv_layer(func: Callable) -> Callable:
 
     @wraps(func)
     def wrapper(*args, **kwargs):
-        if not has_kv_transfer_group() or not is_v1_kv_transfer_group():
+        has_group = has_kv_transfer_group()
+        is_v1 = is_v1_kv_transfer_group() if has_group else False
+
+        # Log once per func to confirm decorator fires (before any early exit)
+        key = f"{func.__name__}_{id(wrapper)}"
+        if key not in _first_wrapper_call:
+            _first_wrapper_call[key] = True
+            logger.debug(
+                "KVTRANSFER_DECORATOR_ENTRY func=%s has_kv_transfer_group=%s "
+                "is_v1=%s",
+                func.__name__, has_group, is_v1,
+            )
+
+        if not has_group or not is_v1:
             return func(*args, **kwargs)
 
         layer_name = _resolve_layer_name(args[layer_name_index])
@@ -52,10 +65,10 @@ def maybe_transfer_kv_layer(func: Callable) -> Callable:
         connector = get_kv_transfer_group()
         has_meta = connector.has_connector_metadata()
 
-        # Log once per layer to confirm decorator is active
-        key = f"{layer_name}_{id(connector)}"
-        if key not in _first_wrapper_call:
-            _first_wrapper_call[key] = True
+        # Log once per layer
+        lkey = f"{layer_name}_{id(connector)}"
+        if lkey not in _first_wrapper_call:
+            _first_wrapper_call[lkey] = True
             logger.debug(
                 "KVTRANSFER_DECORATOR layer=%s attn_metadata_is_none=%s "
                 "has_connector_metadata=%s",
