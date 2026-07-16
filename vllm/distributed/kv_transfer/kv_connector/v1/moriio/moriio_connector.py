@@ -1788,23 +1788,6 @@ class MoRIIOConnectorWorker:
                 live_transfer_ids
             )
             self.moriio_wrapper.async_wait_reqid()
-            # Sample prefill KV at block 1 so we can compare with what decode receives
-            if self.mode == MoRIIOMode.READ and self.kv_caches:
-                first_layer = next(iter(self.kv_caches))
-                kv = self.kv_caches[first_layer]
-                try:
-                    from vllm.distributed.kv_transfer.kv_connector.v1.moriio.moriio_layout import (
-                        get_layer_transfer_geometry,
-                    )
-                    geom = get_layer_transfer_geometry(first_layer, kv, self.layer_to_spec)
-                    byte_off = kv.element_size() * geom.block_stride
-                    sample = self._sample_kv_bytes(kv, byte_off)
-                    logger.debug(
-                        "KV_SAMPLE_PREFILL layer=%s block=1 byte_offset=%d sample=%s",
-                        first_layer, byte_off, sample,
-                    )
-                except Exception as exc:
-                    logger.debug("KV_SAMPLE_PREFILL error: %s", exc)
             return
         if self.mode == MoRIIOMode.WRITE:
             return
