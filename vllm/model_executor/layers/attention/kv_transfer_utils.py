@@ -9,7 +9,13 @@ from vllm.distributed.kv_transfer import (
     has_kv_transfer_group,
     is_v1_kv_transfer_group,
 )
+from vllm.logger import init_logger
 from vllm.utils.torch_utils import _resolve_layer_name
+
+logger = init_logger(__name__)
+
+# Track first-call to avoid log spam
+_first_wrapper_call: dict[str, bool] = {}
 
 
 def maybe_transfer_kv_layer(func: Callable) -> Callable:
@@ -44,7 +50,21 @@ def maybe_transfer_kv_layer(func: Callable) -> Callable:
         # Extract attention context (metadata, layer, kv_cache, layer_slot_mapping)
         attn_metadata, _, kv_cache, _ = get_attention_context(layer_name)
         connector = get_kv_transfer_group()
-        if attn_metadata is None or not connector.has_connector_metadata():
+        has_meta = connector.has_connector_metadata()
+
+        # Log once per layer to confirm decorator is active
+        key = f"{layer_name}_{id(connector)}"
+        if key not in _first_wrapper_call:
+            _first_wrapper_call[key] = True
+            logger.debug(
+                "KVTRANSFER_DECORATOR layer=%s attn_metadata_is_none=%s "
+                "has_connector_metadata=%s",
+                layer_name,
+                attn_metadata is None,
+                has_meta,
+            )
+
+        if attn_metadata is None or not has_meta:
             return func(*args, **kwargs)
 
         # Wait for KV layer on entry

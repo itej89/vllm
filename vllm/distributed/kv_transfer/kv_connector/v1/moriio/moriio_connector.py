@@ -1779,6 +1779,23 @@ class MoRIIOConnectorWorker:
                 live_transfer_ids
             )
             self.moriio_wrapper.async_wait_reqid()
+            # Sample prefill KV at block 1 so we can compare with what decode receives
+            if self.mode == MoRIIOMode.READ and self.kv_caches:
+                first_layer = next(iter(self.kv_caches))
+                kv = self.kv_caches[first_layer]
+                try:
+                    from vllm.distributed.kv_transfer.kv_connector.v1.moriio.moriio_layout import (
+                        get_layer_transfer_geometry,
+                    )
+                    geom = get_layer_transfer_geometry(first_layer, kv, self.layer_to_spec)
+                    byte_off = kv.element_size() * geom.block_stride
+                    sample = self._sample_kv_bytes(kv, byte_off)
+                    logger.debug(
+                        "KV_SAMPLE_PREFILL layer=%s block=1 byte_offset=%d sample=%s",
+                        first_layer, byte_off, sample,
+                    )
+                except Exception as exc:
+                    logger.debug("KV_SAMPLE_PREFILL error: %s", exc)
             return
         if self.mode == MoRIIOMode.WRITE:
             return
@@ -1836,6 +1853,16 @@ class MoRIIOConnectorWorker:
 
         self._reqs_to_send.update(metadata.reqs_to_send)
 
+    @staticmethod
+    def _sample_kv_bytes(tensor: torch.Tensor, byte_offset: int, n: int = 32) -> str:
+        """Return hex dump of n bytes starting at byte_offset in tensor."""
+        try:
+            flat = tensor.view(-1).view(torch.uint8)
+            end = min(byte_offset + n, flat.numel())
+            return flat[byte_offset:end].cpu().tolist().__repr__()
+        except Exception as exc:
+            return f"<sample_error: {exc}>"
+
     def wait_for_layer_load(self) -> None:
         """Block until all in-progress RDMA READs complete.
 
@@ -1846,6 +1873,14 @@ class MoRIIOConnectorWorker:
             return
         if not self._recving_transfers:
             return
+        num_transfers = sum(
+            len(v) for v in self._recving_transfers.values()
+        )
+        logger.debug(
+            "WAIT_FOR_LAYER_LOAD called: %d req(s), %d total transfer(s) in flight",
+            len(self._recving_transfers),
+            num_transfers,
+        )
         deadline = time.monotonic() + self.moriio_config.transfer_timeout
         with self.moriio_wrapper.lock:
             all_statuses = [
@@ -1853,6 +1888,7 @@ class MoRIIOConnectorWorker:
                 for status_list in self._recving_transfers.values()
                 for s in status_list
             ]
+        t0 = time.monotonic()
         while True:
             pending = [s for s in all_statuses if not s.Succeeded() and not s.Failed()]
             if not pending:
@@ -1864,6 +1900,33 @@ class MoRIIOConnectorWorker:
                 )
                 break
             time.sleep(0.0001)
+        waited_ms = (time.monotonic() - t0) * 1000
+        succeeded = sum(1 for s in all_statuses if s.Succeeded())
+        failed = sum(1 for s in all_statuses if s.Failed())
+        logger.debug(
+            "WAIT_FOR_LAYER_LOAD done: waited=%.1fms succeeded=%d failed=%d",
+            waited_ms, succeeded, failed,
+        )
+        # Sample first 32 bytes of each transferred KV layer at the block offset
+        for layer_name, kv_cache in self.kv_caches.items():
+            geom = None
+            try:
+                from vllm.distributed.kv_transfer.kv_connector.v1.moriio.moriio_layout import (
+                    get_layer_transfer_geometry,
+                )
+                geom = get_layer_transfer_geometry(layer_name, kv_cache, self.layer_to_spec)
+            except Exception:
+                pass
+            if geom is None:
+                continue
+            # Sample at block 1 (first non-zero block, where transferred data lands)
+            byte_off = kv_cache.element_size() * geom.block_stride
+            sample = self._sample_kv_bytes(kv_cache, byte_off)
+            logger.debug(
+                "KV_SAMPLE_AFTER_WAIT layer=%s block=1 byte_offset=%d sample=%s",
+                layer_name, byte_off, sample,
+            )
+            break  # only log first layer to avoid spam
 
     def wait_for_save(self, metadata: MoRIIOConnectorMetadata):
         if self.mode == MoRIIOMode.WRITE and self.is_producer:
