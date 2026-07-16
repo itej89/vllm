@@ -2126,8 +2126,6 @@ class MoRIIOConnectorWorker:
         # SQ-full backpressure deadline, shared across this request's layers.
         _sq_deadline = time.monotonic() + self.moriio_config.transfer_timeout
         for layer_name in self.layer_name_to_local_kv_cache_metadata:
-            if not self._is_moriio_transferable_layer(layer_name):
-                continue
             sess_idx = list(self.layer_name_to_local_kv_cache_metadata.keys()).index(
                 layer_name
             )
