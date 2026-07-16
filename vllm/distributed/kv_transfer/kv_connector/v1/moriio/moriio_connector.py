@@ -68,7 +68,7 @@ from vllm.utils.network_utils import (
     make_zmq_path,
     make_zmq_socket,
 )
-from vllm.v1.attention.selector import get_attn_backend
+from vllm.distributed.kv_transfer.kv_connector.utils import get_current_attn_backends
 from vllm.v1.core.sched.output import SchedulerOutput
 from vllm.v1.outputs import KVConnectorOutput
 from vllm.v1.request import RequestStatus
@@ -1024,18 +1024,12 @@ class MoRIIOConnectorWorker:
         self.use_mla = self.model_config.use_mla
         self.built_session = False
         self.built_write_session: defaultdict[str, list] = defaultdict(list)
-        probe_kv_dtype = self.cache_config.cache_dtype
-        use_sparse = False
-        if probe_kv_dtype == "fp8_ds_mla":
-            use_sparse = True
-            probe_kv_dtype = "fp8"
-        backend = get_attn_backend(
-            self.model_config.get_head_size(),
-            self.model_config.dtype,
-            probe_kv_dtype,
-            use_mla=self.use_mla,
-            use_sparse=use_sparse,
-        )
+        # backend_name is resolved in register_kv_caches after the model is
+        # loaded so get_current_attn_backends() can walk the actual layer
+        # objects and read backend_cls directly (e.g. DSV4-Pro sets
+        # DeepseekV4ROCMAiterMLASparseBackend, which the platform selector
+        # does not know about).
+        self.backend_name: str = ""
         self.transfer_id_to_request_id: dict[TransferId, ReqId] = {}
         # READ-mode producer: a decode release-ACK can arrive BEFORE
         # start_load_kv populates transfer_id_to_request_id (the notify races
@@ -1047,10 +1041,6 @@ class MoRIIOConnectorWorker:
         # (on the tick its mapping exists) -- the heterogeneous-TP ack-counting
         # is preserved.
         self._pending_unmapped_acks: list = []
-
-        # TODO: consider the integration of flashinfer or other backends.
-        self.backend_name = backend.get_name()
-        logger.debug("Detected attention backend %s", self.backend_name)
 
     def schedule_write_blocks(
         self,
@@ -1440,6 +1430,10 @@ class MoRIIOConnectorWorker:
 
     def register_kv_caches(self, kv_caches: dict[str, torch.Tensor]):
         """Register the KV Cache data in moriio."""
+
+        backends = get_current_attn_backends(self.vllm_config)
+        self.backend_name = backends[0].get_name()
+        logger.debug("Detected attention backend %s", self.backend_name)
 
         self.kv_caches = kv_caches  # layer name to kv cache
         self.kv_cache_shapes = {
