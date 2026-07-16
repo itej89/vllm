@@ -527,31 +527,11 @@ class DeepseekV4Attention(nn.Module, AttentionLayerBase, ABC):
 
         if _kvt:
             connector = get_kv_transfer_group()
+            # Only transfer the primary MLA attn layer (MLAAttentionSpec).
+            # Sub-cache layers (swa_cache, compressor.state_cache, indexer.*)
+            # use SlidingWindowMLASpec with different block geometry that
+            # MoRIIO's CreateSession cannot handle.
             connector.save_kv_layer(self.prefix, self.kv_cache, attn_metadata)
-            connector.save_kv_layer(
-                self.swa_cache_layer.prefix,
-                self.swa_cache_layer.kv_cache,
-                attn_metadata,
-            )
-            if self.compressor is not None:
-                connector.save_kv_layer(
-                    self.compressor.state_cache.prefix,
-                    self.compressor.state_cache.kv_cache,
-                    attn_metadata,
-                )
-            if self.indexer is not None:
-                if hasattr(self.indexer, "compressor") and self.indexer.compressor is not None:
-                    connector.save_kv_layer(
-                        self.indexer.compressor.state_cache.prefix,
-                        self.indexer.compressor.state_cache.kv_cache,
-                        attn_metadata,
-                    )
-                if hasattr(self.indexer, "k_cache"):
-                    connector.save_kv_layer(
-                        self.indexer.k_cache.prefix,
-                        self.indexer.k_cache.kv_cache,
-                        attn_metadata,
-                    )
 
     def _fused_qnorm_rope_kv_insert(
         self,

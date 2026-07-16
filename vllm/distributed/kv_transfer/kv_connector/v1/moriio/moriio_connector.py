@@ -1104,6 +1104,9 @@ class MoRIIOConnectorWorker:
         if remote_engine_id not in self.built_write_session:
             cur_remote_engine_sessions = []
             for ln, local_meta in self.layer_name_to_local_kv_cache_metadata.items():
+                if not self._is_moriio_transferable_layer(ln):
+                    cur_remote_engine_sessions.append(None)
+                    continue
                 unpacked_local_memory_meta = (
                     self.moriio_wrapper.get_unpack_memory_metadata(local_meta[0])
                 )
@@ -1403,6 +1406,18 @@ class MoRIIOConnectorWorker:
 
     def _is_mla_cache_layer(self, layer_name: str) -> bool:
         return is_mla_cache_layer(self.layer_to_spec, layer_name)
+
+    def _is_moriio_transferable_layer(self, layer_name: str) -> bool:
+        """Return True only for primary MLA layers (MLAAttentionSpec).
+
+        DSV4-Pro registers sub-cache layers (swa_cache, compressor.state_cache,
+        indexer.*) with SlidingWindowMLASpec which MoRIIO's CreateSession cannot
+        handle — they have different block geometry than the primary attn layer.
+        Only the primary attn layer (MLAAttentionSpec) is transferable via MoRIIO.
+        """
+        from vllm.v1.kv_cache_interface import MLAAttentionSpec
+        spec = self.layer_to_spec.get(layer_name)
+        return isinstance(spec, MLAAttentionSpec)
 
     def _get_layer_transfer_geometry(
         self, layer_name: str, remote_num_blocks: int | None = None
@@ -2111,6 +2126,8 @@ class MoRIIOConnectorWorker:
         # SQ-full backpressure deadline, shared across this request's layers.
         _sq_deadline = time.monotonic() + self.moriio_config.transfer_timeout
         for layer_name in self.layer_name_to_local_kv_cache_metadata:
+            if not self._is_moriio_transferable_layer(layer_name):
+                continue
             sess_idx = list(self.layer_name_to_local_kv_cache_metadata.keys()).index(
                 layer_name
             )
