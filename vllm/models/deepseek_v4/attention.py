@@ -38,6 +38,11 @@ from vllm.config import (
     get_current_vllm_config,
 )
 from vllm.distributed import get_tensor_model_parallel_world_size
+from vllm.distributed.kv_transfer import (
+    get_kv_transfer_group,
+    has_kv_transfer_group,
+    is_v1_kv_transfer_group,
+)
 from vllm.forward_context import get_forward_context
 from vllm.logger import init_logger
 from vllm.model_executor.layers.attention_layer_base import AttentionLayerBase
@@ -508,7 +513,45 @@ class DeepseekV4Attention(nn.Module, AttentionLayerBase, ABC):
 
         # MLA attention writes into the pre-allocated `out` buffer
         # ([num_tokens, padded_heads, head_dim]).
+        # KV transfer: wait for RDMA reads to complete before attention reads
+        # from the KV cache (READ mode consumer), or save after (WRITE mode
+        # producer). No-ops when KV transfer is not active.
+        _kvt = (
+            has_kv_transfer_group() and is_v1_kv_transfer_group()
+            and get_kv_transfer_group().has_connector_metadata()
+        )
+        if _kvt:
+            get_kv_transfer_group().wait_for_layer_load(self.prefix)
+
         self.forward_mqa(q, kv, positions, out)
+
+        if _kvt:
+            connector = get_kv_transfer_group()
+            connector.save_kv_layer(self.prefix, self.kv_cache, attn_metadata)
+            connector.save_kv_layer(
+                self.swa_cache_layer.prefix,
+                self.swa_cache_layer.kv_cache,
+                attn_metadata,
+            )
+            if self.compressor is not None:
+                connector.save_kv_layer(
+                    self.compressor.state_cache.prefix,
+                    self.compressor.state_cache.kv_cache,
+                    attn_metadata,
+                )
+            if self.indexer is not None:
+                if hasattr(self.indexer, "compressor") and self.indexer.compressor is not None:
+                    connector.save_kv_layer(
+                        self.indexer.compressor.state_cache.prefix,
+                        self.indexer.compressor.state_cache.kv_cache,
+                        attn_metadata,
+                    )
+                if hasattr(self.indexer, "k_cache"):
+                    connector.save_kv_layer(
+                        self.indexer.k_cache.prefix,
+                        self.indexer.k_cache.kv_cache,
+                        attn_metadata,
+                    )
 
     def _fused_qnorm_rope_kv_insert(
         self,
