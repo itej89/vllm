@@ -120,21 +120,10 @@ def get_layer_transfer_geometry(
     )
 
     if is_mla_cache and len(shape) == 3:
-        num_blocks, dim1, latent_dim = shape
-        if dim1 == spec.block_size:
-            # Standard MLA layout: (num_blocks, block_size, latent_dim)
-            block_size = dim1
-            slot_size_bytes = latent_dim * element_size
-            dense_block_len = block_size * slot_size_bytes
-            # Use stride-based block_len if the tensor has padding between blocks
-            # (e.g. DSV4-Pro swa_cache: stride[0]=149760 > 256*512=131072).
-            block_len = max(dense_block_len, stride[0] * element_size)
-        else:
-            # Compressed MLA layout (e.g. DSV4-Pro attn): dim1 is not block_size.
-            # Use spec.block_size and derive block_len from the block stride.
-            block_size = spec.block_size
-            block_len = stride[0] * element_size
-            slot_size_bytes = block_len // block_size
+        num_blocks = shape[0]
+        block_size = spec.block_size
+        block_len = stride[0] * element_size
+        slot_size_bytes = block_len // block_size
         return LayerTransferGeometry(
             num_blocks=num_blocks,
             block_size=block_size,
