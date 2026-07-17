@@ -432,7 +432,7 @@ class ReqMeta:
     remote_handshake_port: int
     remote_notify_port: int
     remote_engine_id: str
-    tp_size: int
+    remote_tp_size: int
     remote_dp_size: int
     # Multi-pod: list of remote pod IPs indexed by pod_idx.
     multi_pod_hosts: list[str] = field(default_factory=list)
@@ -510,10 +510,6 @@ class MoRIIOConnectorMetadata(KVConnectorMetadata):
             remote_port=int(remote_handshake_port),
             remote_handshake_port=int(remote_handshake_port),
             remote_notify_port=int(remote_notify_port),
-            # Remote peer TP degree (used as remote_tp_size downstream). The
-            # proxy advertises it under "remote_tp_size"; #46332 read "tp_size"
-            # which is absent on WRITE producer requests -> defaulted to 1 ->
-            # rank collapse. Read the right key; 0 == unknown (== homogeneous).
             tp_size=int(
                 kv_transfer_params.get("remote_tp_size")
                 or kv_transfer_params.get("tp_size")
