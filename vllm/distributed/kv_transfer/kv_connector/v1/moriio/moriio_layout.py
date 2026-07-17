@@ -6,10 +6,6 @@ from typing import NamedTuple
 
 import torch
 
-from vllm.logger import init_logger
-
-logger = init_logger(__name__)
-
 from vllm.v1.kv_cache_interface import (
     AttentionSpec,
     KVCacheConfig,
@@ -113,12 +109,6 @@ def get_layer_transfer_geometry(
     element_size = kv_cache.element_size()
     spec = layer_to_spec[layer_name]
     is_mla_cache = is_mla_cache_layer(layer_to_spec, layer_name)
-    logger.debug(
-        "SHAPE_DEBUG get_layer_transfer_geometry: layer=%s shape=%s stride=%s "
-        "element_size=%d is_mla=%s spec=%s",
-        layer_name, tuple(shape), tuple(stride), element_size, is_mla_cache, spec,
-    )
-
     if is_mla_cache and len(shape) == 3:
         num_blocks = shape[0]
         block_size = spec.block_size
