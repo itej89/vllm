@@ -1115,14 +1115,6 @@ class MoRIIOConnectorWorker:
             for ln in self.layer_name_to_local_kv_cache_metadata:
                 lu = local_unpacked[ln]
                 ru = remote_unpacked[ln]
-                logger.debug(
-                    "SESSION_BUILD layer=%s "
-                    "local(engine_key=%s id=%s data=0x%x size=%s loc=%s) "
-                    "remote(engine_key=%s id=%s data=0x%x size=%s loc=%s)",
-                    ln,
-                    lu.engine_key, lu.id, lu.data, lu.size, lu.loc,
-                    ru.engine_key, ru.id, ru.data, ru.size, ru.loc,
-                )
                 try:
                     cur_remote_engine_sessions.append(
                         self.moriio_wrapper.build_session(
@@ -1388,10 +1380,6 @@ class MoRIIOConnectorWorker:
                     tp_size = int(zmq_parts["tp_size"])
             except Exception:
                 pass  # keep meta.tp_size as fallback
-            logger.debug(
-                "MoRIIO handshake: using tp_size=%d for remote engine %s",
-                tp_size, remote_engine_id,
-            )
 
         def request_ready(_f: Future[Any], entry=(req_id, meta)):
             logger.info("MoRIIO handshake done for request %s", req_id)
