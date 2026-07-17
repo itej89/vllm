@@ -1488,19 +1488,12 @@ class MoRIIOConnectorWorker:
             if layer_name not in self.layer_name_to_local_kv_cache_metadata:
                 self.layer_name_to_local_kv_cache_metadata[layer_name] = []
 
-            if not kv_cache.is_contiguous():
-                cache_u8 = kv_cache.view(torch.uint8)
-                total_bytes = (
-                    kv_cache.shape[0] * kv_cache.stride(0) * kv_cache.element_size()
-                )
-                reg_tensor = torch.as_strided(
-                    cache_u8,
-                    size=(total_bytes,),
-                    stride=(1,),
-                    storage_offset=cache_u8.storage_offset(),
-                )
-            else:
+            if kv_cache.is_contiguous():
                 reg_tensor = kv_cache
+            else:
+                cache_u8 = kv_cache.view(torch.uint8)
+                total_bytes = kv_cache.shape[0] * kv_cache.stride(0) * kv_cache.element_size()
+                reg_tensor = torch.as_strided(cache_u8, (total_bytes,), (1,), cache_u8.storage_offset())
             moriio_mem_metadata = self.moriio_wrapper.register_local_tensor(reg_tensor)
             self.layer_name_to_local_kv_cache_metadata[layer_name].append(
                 moriio_mem_metadata
