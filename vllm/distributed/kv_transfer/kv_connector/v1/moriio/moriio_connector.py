@@ -1023,11 +1023,6 @@ class MoRIIOConnectorWorker:
         self.use_mla = self.model_config.use_mla
         self.built_session = False
         self.built_write_session: defaultdict[str, dict] = defaultdict(dict)
-        # backend_name is resolved in register_kv_caches after the model is
-        # loaded so get_current_attn_backends() can walk the actual layer
-        # objects and read backend_cls directly (e.g. DSV4-Pro sets
-        # DeepseekV4ROCMAiterMLASparseBackend, which the platform selector
-        # does not know about).
         self.backend_name: str = ""
         self.transfer_id_to_request_id: dict[TransferId, ReqId] = {}
         # READ-mode producer: a decode release-ACK can arrive BEFORE
