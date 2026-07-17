@@ -1363,8 +1363,8 @@ class MoRIIOConnectorWorker:
         if fut is None:
             host = meta.remote_host
             port = int(meta.remote_handshake_port)
-            remote_dp_size = int(meta.remote_dp_size)
             tp_size = int(meta.tp_size)
+            remote_dp_size = int(meta.remote_dp_size)
             try:
                 peer_zmq = get_peer_zmq_from_request_id(req_id, is_producer=True)
                 parts = dict(s.partition(":")[::2] for s in peer_zmq.split(","))
