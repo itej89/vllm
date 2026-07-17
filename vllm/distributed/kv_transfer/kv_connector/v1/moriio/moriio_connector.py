@@ -1022,7 +1022,7 @@ class MoRIIOConnectorWorker:
         self.block_window_per_layer: list[int | None] = []
         self.use_mla = self.model_config.use_mla
         self.built_session = False
-        self.built_write_session: defaultdict[str, dict] = defaultdict(dict)
+        self.built_write_session: defaultdict[str, list] = defaultdict(list)
         self.transfer_id_to_request_id: dict[TransferId, ReqId] = {}
         # READ-mode producer: a decode release-ACK can arrive BEFORE
         # start_load_kv populates transfer_id_to_request_id (the notify races
@@ -1085,7 +1085,7 @@ class MoRIIOConnectorWorker:
 
     def _get_built_session(self, remote_engine_id):
         if remote_engine_id not in self.built_write_session:
-            cur_remote_engine_sessions = {}
+            cur_remote_engine_sessions = []
             for ln, local_meta in self.layer_name_to_local_kv_cache_metadata.items():
                 unpacked_local_memory_meta = (
                     self.moriio_wrapper.get_unpack_memory_metadata(local_meta[0])
@@ -1097,8 +1097,10 @@ class MoRIIOConnectorWorker:
                         ][0]
                     )
                 )
-                cur_remote_engine_sessions[ln] = self.moriio_wrapper.build_session(
-                    unpacked_local_memory_meta, unpacked_remote_memory_meta
+                cur_remote_engine_sessions.append(
+                    self.moriio_wrapper.build_session(
+                        unpacked_local_memory_meta, unpacked_remote_memory_meta
+                    )
                 )
             self.built_write_session[remote_engine_id] = cur_remote_engine_sessions
         return self.built_write_session[remote_engine_id], self.remote_moriio_metadata[
@@ -1990,7 +1992,9 @@ class MoRIIOConnectorWorker:
 
         # SQ-full backpressure deadline, shared across this request's layers.
         _sq_deadline = time.monotonic() + self.moriio_config.transfer_timeout
-        for layer_name in self.layer_name_to_local_kv_cache_metadata:
+        for sess_idx, layer_name in enumerate(
+            self.layer_name_to_local_kv_cache_metadata
+        ):
             offs = self._compute_block_transfer_offsets(
                 layer_name,
                 local_block_ids,
@@ -2012,7 +2016,7 @@ class MoRIIOConnectorWorker:
             _backoff = 0.001
             while True:
                 transfer_status = self.moriio_wrapper.read_remote_data(
-                    offs[2], offs[0], offs[1], sessions[layer_name]
+                    offs[2], offs[0], offs[1], sessions[sess_idx]
                 )
                 if not self._is_sq_full_status(transfer_status):
                     break
