@@ -1023,7 +1023,6 @@ class MoRIIOConnectorWorker:
         self.use_mla = self.model_config.use_mla
         self.built_session = False
         self.built_write_session: defaultdict[str, dict] = defaultdict(dict)
-        self.backend_name: str = ""
         self.transfer_id_to_request_id: dict[TransferId, ReqId] = {}
         # READ-mode producer: a decode release-ACK can arrive BEFORE
         # start_load_kv populates transfer_id_to_request_id (the notify races
