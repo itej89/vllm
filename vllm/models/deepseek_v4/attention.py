@@ -38,11 +38,6 @@ from vllm.config import (
     get_current_vllm_config,
 )
 from vllm.distributed import get_tensor_model_parallel_world_size
-from vllm.distributed.kv_transfer import (
-    get_kv_transfer_group,
-    has_kv_transfer_group,
-    is_v1_kv_transfer_group,
-)
 from vllm.forward_context import get_forward_context
 from vllm.logger import init_logger
 from vllm.model_executor.layers.attention_layer_base import AttentionLayerBase
@@ -514,7 +509,6 @@ class DeepseekV4Attention(nn.Module, AttentionLayerBase, ABC):
         # MLA attention writes into the pre-allocated `out` buffer
         # ([num_tokens, padded_heads, head_dim]).
         self.forward_mqa(q, kv, positions, out)
-
 
     def _fused_qnorm_rope_kv_insert(
         self,
