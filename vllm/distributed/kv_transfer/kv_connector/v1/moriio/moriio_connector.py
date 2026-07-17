@@ -1091,11 +1091,7 @@ class MoRIIOConnectorWorker:
 
     def _get_built_session(self, remote_engine_id):
         if remote_engine_id not in self.built_write_session:
-            # Unpack all metadata before building any sessions.
-            # MemoryDesc.unpack() may recycle C++ backing buffers between calls;
-            # unpacking both local and remote for all layers up-front ensures
-            # every descriptor stays alive (via its Python wrapper) while
-            # create_session uses it, preventing cross-iteration aliasing.
+            # Unpack all descriptors up-front to avoid aliasing across build_session calls.
             local_unpacked = {
                 ln: self.moriio_wrapper.get_unpack_memory_metadata(meta[0])
                 for ln, meta in self.layer_name_to_local_kv_cache_metadata.items()
