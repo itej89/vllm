@@ -9,13 +9,7 @@ from vllm.distributed.kv_transfer import (
     has_kv_transfer_group,
     is_v1_kv_transfer_group,
 )
-from vllm.logger import init_logger
 from vllm.utils.torch_utils import _resolve_layer_name
-
-logger = init_logger(__name__)
-
-# Track first-call to avoid log spam
-_first_wrapper_call: dict[str, bool] = {}
 
 
 def maybe_transfer_kv_layer(func: Callable) -> Callable:
@@ -42,20 +36,7 @@ def maybe_transfer_kv_layer(func: Callable) -> Callable:
 
     @wraps(func)
     def wrapper(*args, **kwargs):
-        has_group = has_kv_transfer_group()
-        is_v1 = is_v1_kv_transfer_group() if has_group else False
-
-        # Log once per func to confirm decorator fires (before any early exit)
-        key = f"{func.__name__}_{id(wrapper)}"
-        if key not in _first_wrapper_call:
-            _first_wrapper_call[key] = True
-            logger.debug(
-                "KVTRANSFER_DECORATOR_ENTRY func=%s has_kv_transfer_group=%s "
-                "is_v1=%s",
-                func.__name__, has_group, is_v1,
-            )
-
-        if not has_group or not is_v1:
+        if not has_kv_transfer_group() or not is_v1_kv_transfer_group():
             return func(*args, **kwargs)
 
         layer_name = _resolve_layer_name(args[layer_name_index])
@@ -63,21 +44,7 @@ def maybe_transfer_kv_layer(func: Callable) -> Callable:
         # Extract attention context (metadata, layer, kv_cache, layer_slot_mapping)
         attn_metadata, _, kv_cache, _ = get_attention_context(layer_name)
         connector = get_kv_transfer_group()
-        has_meta = connector.has_connector_metadata()
-
-        # Log once per layer
-        lkey = f"{layer_name}_{id(connector)}"
-        if lkey not in _first_wrapper_call:
-            _first_wrapper_call[lkey] = True
-            logger.debug(
-                "KVTRANSFER_DECORATOR layer=%s attn_metadata_is_none=%s "
-                "has_connector_metadata=%s",
-                layer_name,
-                attn_metadata is None,
-                has_meta,
-            )
-
-        if attn_metadata is None or not has_meta:
+        if attn_metadata is None or not connector.has_connector_metadata():
             return func(*args, **kwargs)
 
         # Wait for KV layer on entry
