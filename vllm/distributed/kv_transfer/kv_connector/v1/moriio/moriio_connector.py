@@ -1992,9 +1992,10 @@ class MoRIIOConnectorWorker:
 
         # SQ-full backpressure deadline, shared across this request's layers.
         _sq_deadline = time.monotonic() + self.moriio_config.transfer_timeout
-        for sess_idx, layer_name in enumerate(
-            self.layer_name_to_local_kv_cache_metadata
-        ):
+        for layer_name in self.layer_name_to_local_kv_cache_metadata:
+            sess_idx = list(self.layer_name_to_local_kv_cache_metadata.keys()).index(
+                layer_name
+            )
             offs = self._compute_block_transfer_offsets(
                 layer_name,
                 local_block_ids,
