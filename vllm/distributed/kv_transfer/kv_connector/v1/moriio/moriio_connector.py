@@ -1086,13 +1086,21 @@ class MoRIIOConnectorWorker:
     def _get_built_session(self, remote_engine_id):
         if remote_engine_id not in self.built_write_session:
             cur_remote_engine_sessions = []
-            for ln, meta in self.layer_name_to_local_kv_cache_metadata.items():
-                local_unpacked = self.moriio_wrapper.get_unpack_memory_metadata(meta[0])
-                remote_unpacked = self.moriio_wrapper.get_unpack_memory_metadata(
-                    self.layer_name_to_remote_kv_cache_metadata[remote_engine_id][ln][0]
+            for ln, local_meta in self.layer_name_to_local_kv_cache_metadata.items():
+                unpacked_local_memory_meta = (
+                    self.moriio_wrapper.get_unpack_memory_metadata(local_meta[0])
+                )
+                unpacked_remote_memory_meta = (
+                    self.moriio_wrapper.get_unpack_memory_metadata(
+                        self.layer_name_to_remote_kv_cache_metadata[remote_engine_id][
+                            ln
+                        ][0]
+                    )
                 )
                 cur_remote_engine_sessions.append(
-                    self.moriio_wrapper.build_session(local_unpacked, remote_unpacked)
+                    self.moriio_wrapper.build_session(
+                        unpacked_local_memory_meta, unpacked_remote_memory_meta
+                    )
                 )
             self.built_write_session[remote_engine_id] = cur_remote_engine_sessions
         return self.built_write_session[remote_engine_id], self.remote_moriio_metadata[
