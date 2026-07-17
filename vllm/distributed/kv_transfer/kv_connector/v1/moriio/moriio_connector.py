@@ -1115,8 +1115,7 @@ class MoRIIOConnectorWorker:
         zmq_address = (
             f"host:{self.local_ip},"
             f"handshake:{self.handshake_port},"
-            f"notify:{self.notify_port},"
-            f"tp_size:{self.moriio_config.tp_size}"
+            f"notify:{self.notify_port}"
         )
         role = "P" if self.is_producer else "D"
 
@@ -1343,12 +1342,6 @@ class MoRIIOConnectorWorker:
             port = int(meta.remote_handshake_port)
             tp_size = int(meta.tp_size)
             remote_dp_size = int(meta.remote_dp_size)
-            try:
-                peer_zmq = get_peer_zmq_from_request_id(req_id, is_producer=True)
-                parts = dict(s.partition(":")[::2] for s in peer_zmq.split(","))
-                tp_size = int(parts.get("tp_size", tp_size))
-            except Exception:
-                pass
 
         def request_ready(_f: Future[Any], entry=(req_id, meta)):
             logger.info("MoRIIO handshake done for request %s", req_id)
