@@ -1093,26 +1093,36 @@ class MoRIIOConnectorWorker:
     def _get_built_session(self, remote_engine_id):
         if remote_engine_id not in self.built_write_session:
             cur_remote_engine_sessions = {}
-            for ln, local_meta in self.layer_name_to_local_kv_cache_metadata.items():
-                unpacked_local_memory_meta = (
-                    self.moriio_wrapper.get_unpack_memory_metadata(local_meta[0])
+            # Unpack all metadata before building any sessions.
+            # MemoryDesc.unpack() may recycle C++ backing buffers between calls;
+            # unpacking both local and remote for all layers up-front ensures
+            # every descriptor stays alive (via its Python wrapper) while
+            # create_session uses it, preventing cross-iteration aliasing.
+            local_unpacked = {
+                ln: self.moriio_wrapper.get_unpack_memory_metadata(meta[0])
+                for ln, meta in self.layer_name_to_local_kv_cache_metadata.items()
+            }
+            remote_unpacked = {
+                ln: self.moriio_wrapper.get_unpack_memory_metadata(
+                    self.layer_name_to_remote_kv_cache_metadata[remote_engine_id][ln][0]
                 )
-                unpacked_remote_memory_meta = (
-                    self.moriio_wrapper.get_unpack_memory_metadata(
-                        self.layer_name_to_remote_kv_cache_metadata[remote_engine_id][
-                            ln
-                        ][0]
-                    )
-                )
+                for ln in self.layer_name_to_local_kv_cache_metadata
+            }
+            for ln in self.layer_name_to_local_kv_cache_metadata:
                 logger.debug(
                     "SESSION_BUILD layer=%s local_meta=%s remote_meta=%s",
-                    ln, unpacked_local_memory_meta, unpacked_remote_memory_meta,
+                    ln, local_unpacked[ln], remote_unpacked[ln],
                 )
-                cur_remote_engine_sessions[ln] = (
-                    self.moriio_wrapper.build_session(
-                        unpacked_local_memory_meta, unpacked_remote_memory_meta
+                try:
+                    cur_remote_engine_sessions[ln] = (
+                        self.moriio_wrapper.build_session(
+                            local_unpacked[ln], remote_unpacked[ln]
+                        )
                     )
-                )
+                except Exception as e:
+                    raise RuntimeError(
+                        f"build_session failed for layer {ln!r}: {e}"
+                    ) from e
             self.built_write_session[remote_engine_id] = cur_remote_engine_sessions
         return self.built_write_session[remote_engine_id], self.remote_moriio_metadata[
             remote_engine_id
