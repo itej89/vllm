@@ -514,7 +514,7 @@ class MoRIIOConnectorScheduler:
         if remote_host is None or remote_notify_port is None:
             try:
                 peer_zmq = get_peer_zmq_from_request_id(request_id, is_producer=False)
-                remote_host, _, remote_notify_port, _ = parse_moriio_zmq_address(peer_zmq)
+                remote_host, _, remote_notify_port = parse_moriio_zmq_address(peer_zmq)
             except ValueError:
                 logger.warning(
                     "Cannot release WRITE prefill blocks for request %s: "
@@ -591,7 +591,7 @@ class MoRIIOConnectorScheduler:
                     peer_zmq = get_peer_zmq_from_request_id(
                         request.request_id, is_producer=False
                     )
-                    remote_host, _, remote_notify_port, _ = parse_moriio_zmq_address(
+                    remote_host, _, remote_notify_port = parse_moriio_zmq_address(
                         peer_zmq
                     )
                 remote_notify_port = int(remote_notify_port)
@@ -1368,8 +1368,26 @@ class MoRIIOConnectorWorker:
         if fut is None:
             host = meta.remote_host
             port = int(meta.remote_handshake_port)
-            tp_size = int(meta.tp_size)
             remote_dp_size = int(meta.remote_dp_size)
+            # tp_size: prefer the value embedded in the peer's zmq_address
+            # (forwarded by the router in the request_id) over meta.tp_size,
+            # which defaults to 1 when the router does not forward it explicitly.
+            tp_size = int(meta.tp_size)
+            try:
+                peer_zmq = get_peer_zmq_from_request_id(req_id, is_producer=True)
+                zmq_parts = {
+                    k.strip(): v.strip()
+                    for seg in peer_zmq.split(",")
+                    for k, _, v in [seg.partition(":")]
+                }
+                if "tp_size" in zmq_parts:
+                    tp_size = int(zmq_parts["tp_size"])
+            except Exception:
+                pass  # keep meta.tp_size as fallback
+            logger.debug(
+                "MoRIIO handshake: using tp_size=%d for remote engine %s",
+                tp_size, remote_engine_id,
+            )
 
         def request_ready(_f: Future[Any], entry=(req_id, meta)):
             logger.info("MoRIIO handshake done for request %s", req_id)

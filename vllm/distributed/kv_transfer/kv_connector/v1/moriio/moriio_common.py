@@ -364,17 +364,16 @@ _DECODE_ZMQ_RE = re.compile(r"___decode_addr_(.+)_[0-9a-f]{32}(?:-.*)?$")
 
 def parse_moriio_zmq_address(
     zmq_address: str,
-) -> tuple[str, int, int, int]:
+) -> tuple[str, int, int]:
     """Parse the MoRI-IO zmq address into its components.
 
-    Parses ``"host:IP,handshake:PORT,notify:PORT[,tp_size:N]"`` into
-        (host, handshake_port, notify_port, tp_size).
+    Parses ``"host:IP,handshake:PORT,notify:PORT"`` into
+        (host, handshake_port, notify_port).
 
     Each key-value pair is split on the *first* colon so that IPv6 addresses
     (e.g. ``host:::1``) are handled correctly.  Raises ``ValueError`` if any
     of ``host``, ``handshake``, or ``notify`` keys are absent or if the port
-    values are non-numeric.  ``tp_size`` defaults to 1 if absent (backward
-    compatibility with older peers that do not advertise it).
+    values are non-numeric.
     """
     parts: dict[str, str] = {}
     for segment in zmq_address.split(","):
@@ -389,8 +388,7 @@ def parse_moriio_zmq_address(
             f"Malformed zmq_address {zmq_address!r}: expected "
             f"'host:IP,handshake:PORT,notify:PORT' format"
         ) from e
-    tp_size = int(parts.get("tp_size", 1))
-    return host, handshake_port, notify_port, tp_size
+    return host, handshake_port, notify_port
 
 
 def get_peer_zmq_from_request_id(request_id: str, is_producer: bool) -> str:
@@ -453,9 +451,6 @@ class MoRIIOConnectorMetadata(KVConnectorMetadata):
         remote_host = kv_transfer_params.get("remote_host")
         remote_handshake_port = kv_transfer_params.get("remote_handshake_port")
         remote_notify_port = kv_transfer_params.get("remote_notify_port")
-        # tp_size from the peer's zmq_address (embedded in request_id by the
-        # router); falls back to kv_transfer_params or 1 for old peers.
-        peer_tp_size: int = 1
         if (
             remote_host is None
             or remote_handshake_port is None
@@ -465,11 +460,9 @@ class MoRIIOConnectorMetadata(KVConnectorMetadata):
             # zmq_addresses in PD request IDs, but WRITE decode requests may carry
             # a plain request ID and get the remote address via kv_transfer_params.
             peer_zmq = get_peer_zmq_from_request_id(request_id, is_producer=write_mode)
-            remote_host, remote_handshake_port, remote_notify_port, peer_tp_size = (
+            remote_host, remote_handshake_port, remote_notify_port = (
                 parse_moriio_zmq_address(peer_zmq)
             )
-        else:
-            peer_tp_size = kv_transfer_params.get("tp_size", 1)
 
         _req = ReqMeta(
             transfer_id=transfer_id,
