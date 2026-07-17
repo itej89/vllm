@@ -1022,7 +1022,7 @@ class MoRIIOConnectorWorker:
         self.block_window_per_layer: list[int | None] = []
         self.use_mla = self.model_config.use_mla
         self.built_session = False
-        self.built_write_session: defaultdict[str, dict] = defaultdict(dict)
+        self.built_write_session: defaultdict[str, list] = defaultdict(list)
         self.transfer_id_to_request_id: dict[TransferId, ReqId] = {}
         # READ-mode producer: a decode release-ACK can arrive BEFORE
         # start_load_kv populates transfer_id_to_request_id (the notify races
