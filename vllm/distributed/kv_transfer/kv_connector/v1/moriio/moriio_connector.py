@@ -1092,7 +1092,6 @@ class MoRIIOConnectorWorker:
 
     def _get_built_session(self, remote_engine_id):
         if remote_engine_id not in self.built_write_session:
-            cur_remote_engine_sessions = {}
             # Unpack all metadata before building any sessions.
             # MemoryDesc.unpack() may recycle C++ backing buffers between calls;
             # unpacking both local and remote for all layers up-front ensures
@@ -1108,6 +1107,11 @@ class MoRIIOConnectorWorker:
                 )
                 for ln in self.layer_name_to_local_kv_cache_metadata
             }
+            # Build sessions as a list ordered by layer_name_to_local_kv_cache_metadata
+            # iteration order. The engine indexes sessions by positional integer
+            # (sess_idx = layer_names.index(task.layer_name)), so the list order
+            # must match the dict key order.
+            cur_remote_engine_sessions = []
             for ln in self.layer_name_to_local_kv_cache_metadata:
                 lu = local_unpacked[ln]
                 ru = remote_unpacked[ln]
@@ -1120,7 +1124,7 @@ class MoRIIOConnectorWorker:
                     ru.engine_key, ru.id, ru.data, ru.size, ru.loc,
                 )
                 try:
-                    cur_remote_engine_sessions[ln] = (
+                    cur_remote_engine_sessions.append(
                         self.moriio_wrapper.build_session(
                             local_unpacked[ln], remote_unpacked[ln]
                         )
