@@ -1109,9 +1109,15 @@ class MoRIIOConnectorWorker:
                 for ln in self.layer_name_to_local_kv_cache_metadata
             }
             for ln in self.layer_name_to_local_kv_cache_metadata:
+                lu = local_unpacked[ln]
+                ru = remote_unpacked[ln]
                 logger.debug(
-                    "SESSION_BUILD layer=%s local_meta=%s remote_meta=%s",
-                    ln, local_unpacked[ln], remote_unpacked[ln],
+                    "SESSION_BUILD layer=%s "
+                    "local(engine_key=%s id=%s data=0x%x size=%s loc=%s) "
+                    "remote(engine_key=%s id=%s data=0x%x size=%s loc=%s)",
+                    ln,
+                    lu.engine_key, lu.id, lu.data, lu.size, lu.loc,
+                    ru.engine_key, ru.id, ru.data, ru.size, ru.loc,
                 )
                 try:
                     cur_remote_engine_sessions[ln] = (
