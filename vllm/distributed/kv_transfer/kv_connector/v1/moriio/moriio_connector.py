@@ -295,10 +295,6 @@ class MoRIIOConnector(KVConnectorBase_V1):
         assert isinstance(self._connector_metadata, MoRIIOConnectorMetadata)
         self.connector_worker.start_load_kv(self._connector_metadata)
 
-    def wait_for_layer_load(self, layer_name: str) -> None:
-        if self.connector_worker is not None:
-            self.connector_worker.wait_for_layer_load()
-
     def save_kv_layer(
         self,
         layer_name: str,
@@ -1847,9 +1843,6 @@ class MoRIIOConnectorWorker:
                 break
 
         self._reqs_to_send.update(metadata.reqs_to_send)
-
-    def wait_for_layer_load(self) -> None:
-        pass
 
     def wait_for_save(self, metadata: MoRIIOConnectorMetadata):
         if self.mode == MoRIIOMode.WRITE and self.is_producer:
