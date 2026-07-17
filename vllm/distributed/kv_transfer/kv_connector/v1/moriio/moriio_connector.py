@@ -1106,24 +1106,12 @@ class MoRIIOConnectorWorker:
                 )
                 for ln in self.layer_name_to_local_kv_cache_metadata
             }
-            # Build sessions as a list ordered by layer_name_to_local_kv_cache_metadata
-            # iteration order. The engine indexes sessions by positional integer
-            # (sess_idx = layer_names.index(task.layer_name)), so the list order
-            # must match the dict key order.
-            cur_remote_engine_sessions = []
-            for ln in self.layer_name_to_local_kv_cache_metadata:
-                lu = local_unpacked[ln]
-                ru = remote_unpacked[ln]
-                try:
-                    cur_remote_engine_sessions.append(
-                        self.moriio_wrapper.build_session(
-                            local_unpacked[ln], remote_unpacked[ln]
-                        )
-                    )
-                except Exception as e:
-                    raise RuntimeError(
-                        f"build_session failed for layer {ln!r}: {e}"
-                    ) from e
+            cur_remote_engine_sessions = [
+                self.moriio_wrapper.build_session(
+                    local_unpacked[ln], remote_unpacked[ln]
+                )
+                for ln in self.layer_name_to_local_kv_cache_metadata
+            ]
             self.built_write_session[remote_engine_id] = cur_remote_engine_sessions
         return self.built_write_session[remote_engine_id], self.remote_moriio_metadata[
             remote_engine_id
