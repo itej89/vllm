@@ -1364,21 +1364,13 @@ class MoRIIOConnectorWorker:
             host = meta.remote_host
             port = int(meta.remote_handshake_port)
             remote_dp_size = int(meta.remote_dp_size)
-            # tp_size: prefer the value embedded in the peer's zmq_address
-            # (forwarded by the router in the request_id) over meta.tp_size,
-            # which defaults to 1 when the router does not forward it explicitly.
             tp_size = int(meta.tp_size)
             try:
                 peer_zmq = get_peer_zmq_from_request_id(req_id, is_producer=True)
-                zmq_parts = {
-                    k.strip(): v.strip()
-                    for seg in peer_zmq.split(",")
-                    for k, _, v in [seg.partition(":")]
-                }
-                if "tp_size" in zmq_parts:
-                    tp_size = int(zmq_parts["tp_size"])
+                parts = dict(s.partition(":")[::2] for s in peer_zmq.split(","))
+                tp_size = int(parts.get("tp_size", tp_size))
             except Exception:
-                pass  # keep meta.tp_size as fallback
+                pass
 
         def request_ready(_f: Future[Any], entry=(req_id, meta)):
             logger.info("MoRIIO handshake done for request %s", req_id)
