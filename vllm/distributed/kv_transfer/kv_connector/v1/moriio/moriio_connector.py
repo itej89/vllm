@@ -514,7 +514,7 @@ class MoRIIOConnectorScheduler:
         if remote_host is None or remote_notify_port is None:
             try:
                 peer_zmq = get_peer_zmq_from_request_id(request_id, is_producer=False)
-                remote_host, _, remote_notify_port = parse_moriio_zmq_address(peer_zmq)
+                remote_host, _, remote_notify_port, _ = parse_moriio_zmq_address(peer_zmq)
             except ValueError:
                 logger.warning(
                     "Cannot release WRITE prefill blocks for request %s: "
@@ -591,7 +591,7 @@ class MoRIIOConnectorScheduler:
                     peer_zmq = get_peer_zmq_from_request_id(
                         request.request_id, is_producer=False
                     )
-                    remote_host, _, remote_notify_port = parse_moriio_zmq_address(
+                    remote_host, _, remote_notify_port, _ = parse_moriio_zmq_address(
                         peer_zmq
                     )
                 remote_notify_port = int(remote_notify_port)
@@ -1142,7 +1142,8 @@ class MoRIIOConnectorWorker:
         zmq_address = (
             f"host:{self.local_ip},"
             f"handshake:{self.handshake_port},"
-            f"notify:{self.notify_port}"
+            f"notify:{self.notify_port},"
+            f"tp_size:{self.moriio_config.tp_size}"
         )
         role = "P" if self.is_producer else "D"
 
