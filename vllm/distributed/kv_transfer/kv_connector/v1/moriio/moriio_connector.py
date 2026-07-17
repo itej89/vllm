@@ -295,6 +295,9 @@ class MoRIIOConnector(KVConnectorBase_V1):
         assert isinstance(self._connector_metadata, MoRIIOConnectorMetadata)
         self.connector_worker.start_load_kv(self._connector_metadata)
 
+    def wait_for_layer_load(self, layer_name: str) -> None:
+        pass
+
     def save_kv_layer(
         self,
         layer_name: str,
