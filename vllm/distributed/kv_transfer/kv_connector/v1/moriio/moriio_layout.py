@@ -109,6 +109,7 @@ def get_layer_transfer_geometry(
     element_size = kv_cache.element_size()
     spec = layer_to_spec[layer_name]
     is_mla_cache = is_mla_cache_layer(layer_to_spec, layer_name)
+
     if is_mla_cache and len(shape) == 3:
         num_blocks = shape[0]
         block_size = spec.block_size
