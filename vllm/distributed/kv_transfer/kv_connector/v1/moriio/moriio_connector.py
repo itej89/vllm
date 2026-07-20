@@ -1540,7 +1540,7 @@ class MoRIIOConnectorWorker:
         if fut is None:
             host = meta.remote_host
             port = int(meta.remote_handshake_port)
-            remote_tp_size = int(meta.remote_tp_size)
+            tp_size = int(meta.tp_size)
             remote_dp_size = int(meta.remote_dp_size)
             # Wide-EP multi-pod: remote DP ranks span pods at different IPs
             # (ranks per pod = dp_local), so resolve the host per cur_dp_rank
@@ -2076,7 +2076,7 @@ class MoRIIOConnectorWorker:
             remote_block_ids=meta.remote_block_ids,
             remote_host=meta.remote_host,
             remote_notify_port=meta.remote_notify_port,
-            remote_tp_size=meta.remote_tp_size,
+            remote_tp_size=meta.tp_size,
         )
 
     def _write_blocks_for_req(self, req_id: ReqId, meta: ReqMeta, layer_name, kv_layer):
