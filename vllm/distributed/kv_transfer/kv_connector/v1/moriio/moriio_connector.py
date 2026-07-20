@@ -691,8 +691,10 @@ class MoRIIOConnectorScheduler:
                 except (TypeError, ValueError):
                     _dp_local = 0
                 # Use transfer_id for hashing (stable, not mutated).
+                # Only hash-compute when the router did not supply remote_dp_rank.
                 if (
                     _dp_size > 1
+                    and "remote_dp_rank" not in request.kv_transfer_params
                     and "remote_dp_rank_override" not in request.kv_transfer_params
                 ):
                     _hash_key = request.kv_transfer_params.get(
