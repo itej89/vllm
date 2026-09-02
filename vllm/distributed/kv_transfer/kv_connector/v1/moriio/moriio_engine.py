@@ -47,6 +47,7 @@ try:
     from mori.io import (
         BackendType,
         EngineDesc,
+        FabricBackendConfig,
         IOEngine,
         MemoryDesc,
         PollCqMode,
@@ -555,6 +556,14 @@ class MoRIIOWrapper:
         if backend_type == BackendType.XGMI:
             logger.info("Using MoRIIO backend: XGMI")
             self.moriio_engine.create_backend(backend_type, XgmiBackendConfig())
+        elif backend_type == BackendType.FABRIC:
+            logger.info("Using MoRIIO backend: FABRIC (UALink) + XGMI")
+            self.moriio_engine.create_backend(
+                BackendType.FABRIC, FabricBackendConfig()
+            )
+            self.moriio_engine.create_backend(
+                BackendType.XGMI, XgmiBackendConfig()
+            )
         else:
             logger.info(
                 "Using MoRIIO backend: RDMA "
