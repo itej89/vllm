@@ -29,6 +29,7 @@ class MoriPrepareAndFinalize(mk.FusedMoEPrepareAndFinalizeModular):
         self.num_dispatchers_ = num_dispatchers
         self.max_tokens_per_rank = max_tokens_per_rank
         self.use_fp8_dispatch = use_fp8_dispatch
+        self._original_topk_ids: torch.Tensor | None = None
 
     @property
     def activation_format(self) -> mk.FusedMoEActivationFormat:
@@ -86,6 +87,8 @@ class MoriPrepareAndFinalize(mk.FusedMoEPrepareAndFinalizeModular):
                 quant_func = get_hip_quant(QuantType.per_Token)
                 a1, scale = quant_func(a1, quant_dtype=current_platform.fp8_dtype())
 
+        self._original_topk_ids = topk_ids
+
         (
             dispatch_a1,
             dispatch_weights,
@@ -119,6 +122,6 @@ class MoriPrepareAndFinalize(mk.FusedMoEPrepareAndFinalizeModular):
         result = self.mori_op.combine(
             fused_expert_output,
             None,
-            topk_ids,
+            self._original_topk_ids,
         )[0]
         output.copy_(result[:num_token])
